@@ -1,0 +1,11 @@
+name = "milk-calc"
+main = "worker.js"
+compatibility_date = "2026-04-10"
+
+# Optional but recommended
+workers_dev = true
+
+# If you want a custom route later
+# routes = [
+#   { pattern = "milk.yourdomain.com/*", zone_name = "yourdomain.com" }
+# ]
