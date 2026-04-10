@@ -1,7 +1,645 @@
 export default {
   async fetch(request) {
     return new Response(`<!DOCTYPE html>
-    <!-- paste your full HTML here -->`, {
+    <!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Milk Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inconsolata:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0D1117;
+    --card: #161C26;
+    --border: #232C3D;
+    --accent: #4FC3F7;
+    --accent2: #81C784;
+    --gold: #FFD54F;
+    --rose: #EF9A9A;
+    --text: #E8EDF5;
+    --muted: #5A6A85;
+  }
+
+  body {
+    font-family: 'Inconsolata', monospace;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem 3rem;
+    color: var(--text);
+  }
+
+  .app { width: 100%; max-width: 420px; }
+
+  /* Header */
+  .header {
+    margin-bottom: 1.8rem;
+    animation: fadeUp 0.5s ease both;
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.9rem;
+    font-weight: 900;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  .tagline {
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Total */
+  .total-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 1.5rem 1.8rem;
+    margin-bottom: 1.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: fadeUp 0.5s ease 0.1s both;
+    position: relative;
+    overflow: hidden;
+  }
+  .total-block::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--gold), var(--rose));
+    border-radius: 18px 18px 0 0;
+    z-index: 2;
+  }
+  
+  /* --- MILK WAVE ANIMATION --- */
+  .milk-fill {
+    position: absolute;
+    bottom: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    z-index: 0;
+    pointer-events: none;
+    transform: translateY(calc(100% + 20px)); /* Hidden by default */
+    transition: transform 0.7s cubic-bezier(0.34, 1.2, 0.64, 1);
+  }
+  .milk-fill::before {
+    content: "";
+    position: absolute;
+    top: -19px; left: 0; width: 200%; height: 20px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 40'%3E%3Cpath d='M0 20 Q 200 40 400 20 T 800 20 V 40 H 0 Z' fill='rgba(255,255,255,0.08)'/%3E%3C/svg%3E") repeat-x;
+    background-size: 50% 100%;
+    animation: milkFlow 3s linear infinite;
+  }
+  @keyframes milkFlow {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* --- MILK SPLASH PARTICLES --- */
+  .milk-drop {
+    position: fixed;
+    width: 6px; height: 6px;
+    background: var(--text);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    animation: dropAnim 0.6s cubic-bezier(0.2, 1, 0.3, 1) forwards;
+  }
+  @keyframes dropAnim {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.3); }
+    100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty) + 40px)) scale(0); }
+  }
+
+  .t-content-wrapper {
+    position: relative;
+    z-index: 1; /* Stay above the milk wave */
+  }
+  .t-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+  }
+  .t-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    font-weight: 900;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .t-num .t-unit {
+    font-size: 0.9rem;
+    font-family: 'Inconsolata', monospace;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+  .t-sub {
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 0.3rem;
+  }
+
+  /* Bar chart */
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    height: 50px;
+    position: relative;
+    z-index: 1; /* Stay above the milk wave */
+  }
+  .bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    width: 30px;
+  }
+  .bar-fill {
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    transition: height 0.4s cubic-bezier(0.34, 1.4, 0.64, 1);
+    min-height: 2px;
+  }
+  .bar-lbl {
+    font-size: 0.5rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* Card grid — 4 cards */
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+    margin-bottom: 1.2rem;
+    animation: fadeUp 0.5s ease 0.2s both;
+  }
+
+  .qty-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 1rem 0.8rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    transition: border-color 0.2s;
+    position: relative;
+  }
+
+  .qty-card[data-key="1l"]    { --clr: #4FC3F7; }
+  .qty-card[data-key="05l"]   { --clr: #81C784; }
+  .qty-card[data-key="075l"]  { --clr: #FFD54F; }
+  .qty-card[data-key="025l"]  { --clr: #EF9A9A; }
+
+  .qty-card:has(.count-num[data-nonzero="true"]) {
+    border-color: var(--clr);
+  }
+
+  /* Count badge top-right */
+  .count-badge {
+    position: absolute;
+    top: 8px; right: 10px;
+    font-size: 0.58rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--clr) 20%, transparent);
+    color: var(--clr);
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.2s cubic-bezier(0.34, 1.5, 0.64, 1);
+  }
+  .count-badge.show { opacity: 1; transform: scale(1); }
+
+  /* Value label */
+  .qty-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.9rem;
+    font-weight: 900;
+    color: var(--clr);
+    line-height: 1;
+  }
+  .qty-unit {
+    font-size: 0.58rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: -4px;
+  }
+
+  /* + / - row */
+  .btn-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .add-btn, .sub-btn {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Inconsolata', monospace;
+    font-weight: 600;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0.55rem 0;
+    transition: all 0.15s cubic-bezier(0.34, 1.5, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+    line-height: 1;
+  }
+
+  .add-btn {
+    background: color-mix(in srgb, var(--clr) 18%, transparent);
+    color: var(--clr);
+    border: 1.5px solid color-mix(in srgb, var(--clr) 35%, transparent);
+  }
+  .add-btn:hover {
+    background: color-mix(in srgb, var(--clr) 30%, transparent);
+    transform: translateY(-2px) scale(1.05);
+  }
+  .add-btn:active { transform: scale(0.95); }
+
+  .sub-btn {
+    background: rgba(255,255,255,0.03);
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+    font-size: 1.3rem;
+  }
+  .sub-btn:hover {
+    background: rgba(239,154,154,0.1);
+    color: var(--rose);
+    border-color: rgba(239,154,154,0.4);
+    transform: translateY(-2px) scale(1.05);
+  }
+  .sub-btn:active { transform: scale(0.95); }
+  .sub-btn:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Count display between buttons */
+  .count-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--clr);
+    min-width: 28px;
+    text-align: center;
+    transition: all 0.2s cubic-bezier(0.34, 1.8, 0.64, 1);
+  }
+
+  /* Breakdown */
+  .breakdown {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.1rem 1.4rem;
+    margin-bottom: 1rem;
+    animation: fadeUp 0.5s ease 0.3s both;
+  }
+  .bd-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.9rem;
+  }
+  .bd-rows { display: flex; flex-direction: column; gap: 0.5rem; }
+  .bd-row {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+  .bd-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .bd-name {
+    font-size: 0.8rem;
+    color: var(--text);
+    width: 48px;
+    flex-shrink: 0;
+  }
+  .bd-track {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .bd-fill {
+    height: 100%;
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+  }
+  .bd-info {
+    font-size: 0.68rem;
+    color: var(--muted);
+    width: 68px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* Undo last + Reset */
+  .action-row {
+    display: flex;
+    gap: 0.6rem;
+    animation: fadeUp 0.5s ease 0.4s both;
+  }
+  .undo-btn, .reset-btn {
+    flex: 1;
+    padding: 0.8rem;
+    background: transparent;
+    border-radius: 12px;
+    font-family: 'Inconsolata', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .undo-btn {
+    border: 1px solid rgba(255,213,79,0.3);
+    color: var(--gold);
+  }
+  .undo-btn:hover {
+    background: rgba(255,213,79,0.08);
+    border-color: var(--gold);
+  }
+  .undo-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+  .reset-btn {
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .reset-btn:hover {
+    border-color: var(--rose);
+    color: var(--rose);
+    background: rgba(239,154,154,0.05);
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .pop {
+    animation: pop 0.3s cubic-bezier(0.34, 1.8, 0.64, 1);
+  }
+  @keyframes pop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.12); }
+    100% { transform: scale(1); }
+  }
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    transform: scale(0);
+    animation: rippleAnim 0.4s ease-out forwards;
+    pointer-events: none;
+  }
+  @keyframes rippleAnim {
+    to { transform: scale(5); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <span style="font-size:1.5rem">🥛</span>
+    <div>
+      <h1>Milk Calc</h1>
+      <div class="tagline">tap + to add · tap − to fix mistake</div>
+    </div>
+  </div>
+
+  <div class="total-block">
+    <div class="milk-fill" id="milkFill"></div> <div class="t-content-wrapper">
+      <div class="t-label">Total Collected</div>
+      <div class="t-num" id="totalNum">0<span class="t-unit">L</span></div>
+      <div class="t-sub" id="totalSub">0 additions</div>
+    </div>
+    <div class="bar-chart" id="barChart"></div>
+  </div>
+
+  <div class="card-grid" id="cardGrid"></div>
+
+  <div class="breakdown">
+    <div class="bd-label">Breakdown</div>
+    <div class="bd-rows" id="bdRows"></div>
+  </div>
+
+  <div class="action-row">
+    <button class="undo-btn" id="undoBtn" onclick="undoLast()" disabled>⟵ Undo Last</button>
+    <button class="reset-btn" onclick="resetAll()">↺ Reset All</button>
+  </div>
+
+</div>
+
+<script>
+const items = [
+  { key: '1l',   val: 1,    label: '1',    unit: 'Litre',  color: '#4FC3F7' },
+  { key: '05l',  val: 0.5,  label: '0.5',  unit: 'Litre',  color: '#81C784' },
+  { key: '075l', val: 0.75, label: '0.75', unit: 'Litre',  color: '#FFD54F' },
+  { key: '025l', val: 0.25, label: '0.25', unit: 'Litre',  color: '#EF9A9A' },
+];
+
+const counts = {};
+items.forEach(it => counts[it.key] = 0);
+const history = []; // for undo
+let totalTaps = 0;
+
+// Set max target capacity for the wave fill animation (e.g., 15 Litres fills it up to 100%)
+const MAX_CAPACITY_TARGET = 15; 
+
+// Build cards
+const cardGrid = document.getElementById('cardGrid');
+items.forEach(it => {
+  cardGrid.innerHTML += `
+    <div class="qty-card" data-key="${it.key}" style="--clr:${it.color}">
+      <span class="count-badge" id="badge-${it.key}">0×</span>
+      <div class="qty-val">${it.label}</div>
+      <div class="qty-unit">${it.unit}</div>
+      <div class="btn-row">
+        <button class="sub-btn" id="sub-${it.key}" onclick="subtract('${it.key}', this, event)" disabled>−</button>
+        <div class="count-num" id="cnt-${it.key}" style="color:${it.color}" data-nonzero="false">0</div>
+        <button class="add-btn" onclick="addQty('${it.key}', this, event)">+</button>
+      </div>
+    </div>`;
+});
+
+// Build breakdown rows
+const bdRows = document.getElementById('bdRows');
+items.forEach(it => {
+  bdRows.innerHTML += `
+    <div class="bd-row">
+      <div class="bd-dot" style="background:${it.color}"></div>
+      <div class="bd-name">${it.label} L</div>
+      <div class="bd-track"><div class="bd-fill" id="fill-${it.key}" style="background:${it.color}"></div></div>
+      <div class="bd-info" id="info-${it.key}">0×  —  0 L</div>
+    </div>`;
+});
+
+// Build bar chart
+const barChart = document.getElementById('barChart');
+items.forEach(it => {
+  barChart.innerHTML += `
+    <div class="bar-col">
+      <div class="bar-fill" id="bar-${it.key}" style="background:${it.color};height:2px"></div>
+      <div class="bar-lbl">${it.val}L</div>
+    </div>`;
+});
+
+function ripple(btn, e) {
+  const rect = btn.getBoundingClientRect();
+  const r = document.createElement('span');
+  r.className = 'ripple';
+  const s = 50;
+  r.style.cssText = `width:${s}px;height:${s}px;left:${e.clientX-rect.left-s/2}px;top:${e.clientY-rect.top-s/2}px`;
+  btn.appendChild(r);
+  setTimeout(() => r.remove(), 420);
+}
+
+function milkSplash(btn, e) {
+  const rect = btn.getBoundingClientRect();
+  // Create 4 to 6 droplets
+  const dropCount = Math.floor(Math.random() * 3) + 4;
+  
+  for(let i = 0; i < dropCount; i++) {
+    const drop = document.createElement('div');
+    drop.className = 'milk-drop';
+    document.body.appendChild(drop);
+
+    // Start at mouse cursor if clicked, else center of button
+    const startX = e.clientX || (rect.left + rect.width / 2);
+    const startY = e.clientY || (rect.top + rect.height / 2);
+    
+    drop.style.left = startX + 'px';
+    drop.style.top = startY + 'px';
+
+    // Random trajectory
+    const tx = (Math.random() - 0.5) * 80;
+    const ty = (Math.random() - 1) * 80 - 10;
+    drop.style.setProperty('--tx', tx + 'px');
+    drop.style.setProperty('--ty', ty + 'px');
+
+    setTimeout(() => drop.remove(), 600);
+  }
+}
+
+function addQty(key, btn, e) {
+  counts[key]++;
+  totalTaps++;
+  history.push(key);
+  ripple(btn, e);
+  milkSplash(btn, e); // Trigger splash effect
+  refresh();
+}
+
+function subtract(key, btn, e) {
+  if (counts[key] <= 0) return;
+  counts[key]--;
+  totalTaps = Math.max(0, totalTaps - 1);
+  // remove last occurrence from history
+  const idx = history.lastIndexOf(key);
+  if (idx !== -1) history.splice(idx, 1);
+  ripple(btn, e);
+  refresh();
+}
+
+function undoLast() {
+  if (!history.length) return;
+  const key = history.pop();
+  counts[key] = Math.max(0, counts[key] - 1);
+  totalTaps = Math.max(0, totalTaps - 1);
+  refresh();
+}
+
+function refresh() {
+  let total = 0;
+  items.forEach(it => total += counts[it.key] * it.val);
+
+  // Total display
+  const tn = document.getElementById('totalNum');
+  tn.innerHTML = `${parseFloat(total.toFixed(3)) || 0}<span class="t-unit">L</span>`;
+  tn.classList.remove('pop');
+  void tn.offsetWidth;
+  tn.classList.add('pop');
+  document.getElementById('totalSub').textContent = totalTaps + (totalTaps === 1 ? ' addition' : ' additions');
+
+  // Handle Milk Wave fill background
+  const fillPercent = Math.min((total / MAX_CAPACITY_TARGET) * 100, 100);
+  const fillEl = document.getElementById('milkFill');
+  
+  if (total === 0) {
+    fillEl.style.transform = `translateY(calc(100% + 20px))`; // Reset completely out of view
+  } else {
+    fillEl.style.transform = `translateY(${100 - fillPercent}%)`; // Rise up based on percentage
+  }
+
+  const maxCount = Math.max(...items.map(it => counts[it.key]), 1);
+
+  items.forEach(it => {
+    const c = counts[it.key];
+    const subTotal = parseFloat((c * it.val).toFixed(3));
+
+    // Badge
+    const badge = document.getElementById('badge-' + it.key);
+    badge.textContent = c + '×';
+    if (c > 0) badge.classList.add('show'); else badge.classList.remove('show');
+
+    // Count number
+    const cntEl = document.getElementById('cnt-' + it.key);
+    cntEl.textContent = c;
+    cntEl.dataset.nonzero = c > 0 ? 'true' : 'false';
+
+    // Sub button enable/disable
+    document.getElementById('sub-' + it.key).disabled = c === 0;
+
+    // Breakdown
+    document.getElementById('fill-' + it.key).style.width = (c / maxCount * 100) + '%';
+    document.getElementById('info-' + it.key).textContent = `${c}×  —  ${subTotal} L`;
+
+    // Bar chart
+    const barH = Math.max(2, (c / maxCount) * 42);
+    document.getElementById('bar-' + it.key).style.height = barH + 'px';
+  });
+
+  // Undo button
+  document.getElementById('undoBtn').disabled = history.length === 0;
+}
+
+function resetAll() {
+  items.forEach(it => counts[it.key] = 0);
+  history.length = 0;
+  totalTaps = 0;
+  refresh();
+}
+</script>
+</body>
+</html>
+      -->`, {
       headers: { "content-type": "text/html;charset=UTF-8" },
     });
   },
