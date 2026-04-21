@@ -10,5 +10,5 @@ binding = "ASSETS"
 # D1 Database binding
 [[d1_databases]]
 binding = "DB"
-database_name = "milk-management-db"
+database_name = "milk_db"
 database_id = "503995bf-23d9-4086-92cf-8c7117174d39"   # Replace after: wrangler d1 create milk-management-db
