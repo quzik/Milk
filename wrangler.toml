@@ -1,5 +1,5 @@
 name = "milk-management-pro"
-main = "index.js" # Path to your worker file
+main = "src/index.js" # Path to your worker file
 compatibility_date = "2024-05-01"
 
 # This allows your worker to serve the HTML file from a folder (e.g., /public)
