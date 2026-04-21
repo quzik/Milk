@@ -1,13 +1,13 @@
-name = "milk-delivery-app"
+name = "milk-app"
 main = "worker.js"
 compatibility_date = "2026-04-21"
 
-# Enable logs/metrics (optional but useful)
 [observability]
 enabled = true
 
-# KV Namespace binding
-[[kv_namespaces]]
-binding = "MILK_DB"
-id = "f1f1dfaaeba246e6a5357d9d1fe19aa1"
-preview_id = "REPLACE_WITH_PREVIEW_ID"
+[[d1_databases]]
+binding = "DB"
+database_name = "milk_db"
+database_id = "YOUR_DATABASE_ID"
+
+assets = { directory = "./public" }
