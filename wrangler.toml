@@ -1,16 +1,14 @@
-name = "milk-management-pro"
-main = "src/index.js" # Path to your worker file
-compatibility_date = "2024-05-01"
+name = "milk-management"
+main = "worker.js"
+compatibility_date = "2024-01-01"
 
-# This allows your worker to serve the HTML file from a folder (e.g., /public)
+# Static assets (your index.html and any other frontend files)
 [assets]
 directory = "./public"
 binding = "ASSETS"
 
+# D1 Database binding
 [[d1_databases]]
-binding = "DB" # This must match 'env.DB' in your code
-database_name = "milk_db"
-database_id = "503995bf-23d9-4086-92cf-8c7117174d39" # Get this by running: npx wrangler d1 create milk_db
-
-[observability]
-enabled = true
+binding = "DB"
+database_name = "milk-management-db"
+database_id = "503995bf-23d9-4086-92cf-8c7117174d39"   # Replace after: wrangler d1 create milk-management-db
