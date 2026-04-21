@@ -1,61 +1,67 @@
-<script>
 let customers = [];
 
-// 1. Populate Month Selector (Fixed to trigger reload on change)
+// Populate Month Selector ONCE
 const monthSelect = document.getElementById("month");
 const now = new Date();
-for(let i=0; i<6; i++) {
+for(let i = 0; i < 6; i++) {
     let d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    let val = d.toISOString().slice(0,7); 
-    monthSelect.innerHTML += `<option value="${val}">${val}</option>`;
+    let val = d.toISOString().slice(0, 7); // "2024-05"
+    let opt = document.createElement("option");
+    opt.value = val;
+    opt.textContent = val;
+    monthSelect.appendChild(opt);
 }
 
-// Reload data when the user changes the month
-monthSelect.onchange = loadCustomers;
-
 async function login() {
-  const res = await fetch('/login', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'}, // Added missing header
-    body: JSON.stringify({username: user.value, password: pass.value})
-  });
-  if(res.ok) {
+  const user = document.getElementById("user");
+  const pass = document.getElementById("pass");
+  
+  try {
+    const res = await fetch('/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },  // ← REQUIRED
+      body: JSON.stringify({ username: user.value, password: pass.value })
+    });
+    
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     loadCustomers();
-  } else {
-    alert("Login Failed");
+  } catch (err) {
+    alert("Login Failed: " + err.message);
+    console.error(err);
   }
 }
 
 async function loadCustomers() {
-  // Only try to load if we have a session (or just handle 401s gracefully)
-  const res = await fetch('/customers');
-  if (!res.ok) return; // User might not be logged in yet
-  
-  customers = await res.json();
-  
-  const savedRes = await fetch(`/load?month=${monthSelect.value}`);
-  const savedData = await savedRes.json();
-  renderTable(savedData);
+  try {
+    const res = await fetch('/customers');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    customers = await res.json();
+
+    const savedRes = await fetch(`/load?month=${encodeURIComponent(monthSelect.value)}`);
+    if (!savedRes.ok) throw new Error(`HTTP ${savedRes.status}`);
+    const savedData = await savedRes.json();
+    
+    renderTable(savedData);
+  } catch (err) {
+    alert("Failed to load data: " + err.message);
+    console.error(err);
+  }
 }
 
 function renderTable(savedData = []) {
   const tbody = document.getElementById("tbody");
-  
   tbody.innerHTML = customers.map(c => {
-    // Find if this customer has saved data for the selected month
-    const saved = savedData.find(s => s.customer_id === c.id) || { qty: 1, rate: 50 };
-    
+    const saved = savedData.find(s => parseInt(s.customer_id) === parseInt(c.id)) || { qty: 1, rate: 50 };
     return `
       <tr data-id="${c.id}">
         <td>${c.name}</td>
-        <td><input type="number" class="qty" oninput="calc()" value="${saved.qty}"></td>
-        <td><input type="number" class="rate" oninput="calc()" value="${saved.rate}"></td>
-        <td><input type="checkbox" class="delivered" onchange="calc()" checked></td>
+        <td><input type="number" class="qty" value="${saved.qty}" min="0"></td>
+        <td><input type="number" class="rate" value="${saved.rate}" min="0" step="0.01"></td>
+        <td><input type="checkbox" class="delivered" checked></td>
         <td class="total">0</td>
       </tr>`;
   }).join("");
-  
-  calc(); // Run initial calculation
+  calc();
 }
 
 function calc() {
@@ -63,30 +69,29 @@ function calc() {
     const q = parseFloat(tr.querySelector(".qty").value) || 0;
     const r = parseFloat(tr.querySelector(".rate").value) || 0;
     const isDelivered = tr.querySelector(".delivered").checked;
-    
-    // Simple logic: If delivered is unchecked, total is 0 for that entry
-    tr.querySelector(".total").innerText = (isDelivered ? (q * r) : 0).toFixed(2);
+    tr.querySelector(".total").innerText = isDelivered ? (q * r).toFixed(2) : "0.00";
   });
 }
 
 async function save() {
-  const rows = [...document.querySelectorAll("#tbody tr")].map(tr => ({
-    customer_id: parseInt(tr.dataset.id),
-    qty: tr.querySelector(".qty").value,
-    rate: tr.querySelector(".rate").value,
-    days: [tr.querySelector(".delivered").checked] // Simplified for now
-  }));
+  try {
+    const rows = [...document.querySelectorAll("#tbody tr")].map(tr => ({
+      customer_id: parseInt(tr.dataset.id),
+      qty: parseFloat(tr.querySelector(".qty").value) || 0,
+      rate: parseFloat(tr.querySelector(".rate").value) || 0,
+      delivered: tr.querySelector(".delivered").checked  // ← boolean, not array
+    }));
 
-  const res = await fetch('/save', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ month: monthSelect.value, rows })
-  });
-
-  if(res.ok) {
+    const res = await fetch('/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month: monthSelect.value, rows })
+    });
+    
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     alert("Data Saved Successfully!");
-  } else {
-    alert("Error saving data.");
+  } catch (err) {
+    alert("Save Failed: " + err.message);
+    console.error(err);
   }
 }
-</script>
