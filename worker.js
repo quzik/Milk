@@ -1,231 +1,150 @@
-const html = `
-<!DOCTYPE html>
-<html lang="ta">
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Milk Dashboard Pro</title>
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    // ---------- HELPERS ----------
+    const json = (data, status = 200) =>
+      new Response(JSON.stringify(data), {
+        status,
+        headers: { "Content-Type": "application/json" },
+      });
 
-<style>
-body { font-family: 'Segoe UI', sans-serif; margin:0; background:#eef2f3; }
-header { background:#2c3e50; color:#fff; padding:15px; text-align:center; }
+    const getCookie = (req, name) => {
+      const cookie = req.headers.get("Cookie") || "";
+      const match = cookie.match(new RegExp(`${name}=([^;]+)`));
+      return match ? match[1] : null;
+    };
 
-.container { padding:15px; }
+    const getUser = async (req) => {
+      const token = getCookie(req, "session");
+      if (!token) return null;
 
-.card {
-  background:white;
-  padding:15px;
-  border-radius:10px;
-  margin-bottom:15px;
-  box-shadow:0 5px 15px rgba(0,0,0,0.1);
-}
+      const s = await env.DB.prepare(
+        "SELECT user_id FROM sessions WHERE token=?"
+      ).bind(token).first();
 
-input, select {
-  padding:8px;
-  margin:5px;
-}
+      return s?.user_id || null;
+    };
 
-button {
-  padding:8px 12px;
-  background:#27ae60;
-  color:white;
-  border:none;
-  border-radius:6px;
-}
+    // ---------- AUTH ----------
+    if (url.pathname === "/login" && request.method === "POST") {
+      const { username, password } = await request.json();
 
-.table-wrapper {
-  overflow-x:auto;
-}
+      const user = await env.DB.prepare(
+        "SELECT * FROM users WHERE username=? AND password=?"
+      ).bind(username, password).first();
 
-table {
-  width:100%;
-  border-collapse:collapse;
-  font-size:12px;
-}
+      if (!user) return json({ error: "Invalid login" }, 401);
 
-th, td {
-  border:1px solid #ccc;
-  padding:5px;
-  text-align:center;
-}
+      const token = crypto.randomUUID();
 
-th { background:#34495e; color:white; }
+      await env.DB.prepare(
+        "INSERT INTO sessions (token, user_id) VALUES (?, ?)"
+      ).bind(token, user.id).run();
 
-.sunday { background:#ffd6d6; }
-
-.total { font-weight:bold; background:#f1f2f6; }
-</style>
-</head>
-
-<body>
-
-<header>🥛 Milk Management Pro</header>
-
-<div class="container">
-
-<!-- LOGIN -->
-<div class="card">
-<h3>Login</h3>
-<input id="user" placeholder="Username">
-<input id="pass" type="password" placeholder="Password">
-<button onclick="login()">Login</button>
-</div>
-
-<!-- CONTROLS -->
-<div class="card">
-<select id="year"></select>
-<select id="month" onchange="generateTable()">
-${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-.map((m,i)=>`<option value="${i}">${m}</option>`).join("")}
-</select>
-
-<button onclick="save()">💾 Save</button>
-</div>
-
-<!-- ADD CUSTOMER -->
-<div class="card">
-<input id="custName" placeholder="Customer name">
-<button onclick="addCustomer()">Add Customer</button>
-</div>
-
-<!-- TABLE -->
-<div class="card table-wrapper">
-<table>
-<thead id="thead"></thead>
-<tbody id="tbody"></tbody>
-</table>
-</div>
-
-<!-- ANALYTICS -->
-<div class="card">
-<h3>Analytics</h3>
-<canvas id="chart"></canvas>
-</div>
-
-</div>
-
-<script>
-let customers = [];
-
-// YEAR
-for(let y=2024;y<=2035;y++){
-  year.innerHTML += \`<option>\${y}</option>\`;
-}
-
-// LOGIN
-async function login(){
-  await fetch('/login',{
-    method:'POST',
-    body:JSON.stringify({
-      username:user.value,
-      password:pass.value
-    })
-  });
-  loadCustomers();
-  loadChart();
-}
-
-// LOAD CUSTOMERS
-async function loadCustomers(){
-  const res = await fetch('/customers');
-  customers = await res.json();
-  generateTable();
-}
-
-// GENERATE TABLE
-function generateTable(){
-  const y = year.value;
-  const m = +month.value;
-  const days = new Date(y, m+1, 0).getDate();
-
-  let head = "<tr><th>Name</th><th>Qty</th><th>Rate</th>";
-
-  for(let d=1; d<=days; d++){
-    let dt = new Date(y,m,d);
-    let s = dt.getDay()==0 ? 'class="sunday"' : '';
-    head += \`<th \${s}>\${d}</th>\`;
-  }
-
-  head += "<th>Total</th></tr>";
-  thead.innerHTML = head;
-
-  tbody.innerHTML = customers.map(c => {
-    return \`
-    <tr data-id="\${c.id}">
-      <td>\${c.name}</td>
-      <td><input type="number" value="1" class="qty"></td>
-      <td><input type="number" value="50" class="rate"></td>
-      \${Array(days).fill(0).map(()=>'<td><input type="checkbox" class="day"></td>').join("")}
-      <td class="total">0</td>
-    </tr>\`;
-  }).join("");
-
-  document.querySelectorAll(".day, .qty, .rate").forEach(el=>{
-    el.oninput = calc;
-  });
-}
-
-// CALC
-function calc(){
-  document.querySelectorAll("#tbody tr").forEach(tr=>{
-    const qty = +tr.querySelector(".qty").value || 0;
-    const rate = +tr.querySelector(".rate").value || 0;
-    const days = [...tr.querySelectorAll(".day")].filter(d=>d.checked).length;
-
-    tr.querySelector(".total").innerText = qty * rate * days;
-  });
-}
-
-// SAVE
-async function save(){
-  const monthKey = \`\${year.value}-\${String(+month.value+1).padStart(2,"0")}\`;
-
-  const rows = [...document.querySelectorAll("#tbody tr")].map(tr=>({
-    customer_id: tr.dataset.id,
-    qty: tr.querySelector(".qty").value,
-    rate: tr.querySelector(".rate").value,
-    oldBal: 0,
-    received: 0,
-    days: [...tr.querySelectorAll(".day")].map(d=>d.checked)
-  }));
-
-  await fetch('/save',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({month:monthKey, rows})
-  });
-
-  alert("Saved");
-}
-
-// ADD CUSTOMER
-async function addCustomer(){
-  await fetch('/customer',{
-    method:'POST',
-    body:JSON.stringify({name:custName.value})
-  });
-  loadCustomers();
-}
-
-// CHART
-async function loadChart(){
-  const res = await fetch('/analytics');
-  const data = await res.json();
-
-  new Chart(chart,{
-    type:'line',
-    data:{
-      labels:data.map(d=>d.month),
-      datasets:[{
-        label:"Revenue",
-        data:data.map(d=>d.revenue)
-      }]
+      return new Response(JSON.stringify({ success: true }), {
+        headers: {
+          "Set-Cookie": `session=${token}; HttpOnly; Secure; SameSite=Strict; Path=/`
+        }
+      });
     }
-  });
-}
-</script>
 
-</body>
-</html>
-`;
+    // ---------- CUSTOMERS ----------
+    if (url.pathname === "/customers") {
+      const uid = await getUser(request);
+      if (!uid) return json({ error: "Unauthorized" }, 401);
+
+      const { results } = await env.DB.prepare(
+        "SELECT * FROM customers WHERE user_id=?"
+      ).bind(uid).all();
+
+      return json(results);
+    }
+
+    if (url.pathname === "/customer" && request.method === "POST") {
+      const uid = await getUser(request);
+      if (!uid) return json({ error: "Unauthorized" }, 401);
+
+      const { name } = await request.json();
+
+      const res = await env.DB.prepare(
+        "INSERT INTO customers (name, user_id) VALUES (?, ?)"
+      ).bind(name, uid).run();
+
+      return json({ id: res.meta.last_row_id });
+    }
+
+    // ---------- SAVE ----------
+    if (url.pathname === "/save" && request.method === "POST") {
+      const uid = await getUser(request);
+      if (!uid) return json({ error: "Unauthorized" }, 401);
+
+      const { month, rows } = await request.json();
+
+      await env.DB.prepare("DELETE FROM entries WHERE month=?")
+        .bind(month).run();
+
+      const stmt = env.DB.prepare(`
+        INSERT INTO entries
+        (customer_id, month, qty, rate, old_balance, received, days)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      const batch = rows.map(r =>
+        stmt.bind(
+          r.customer_id,
+          month,
+          Number(r.qty),
+          Number(r.rate),
+          0,
+          0,
+          JSON.stringify(r.days || [])
+        )
+      );
+
+      await env.DB.batch(batch);
+
+      return json({ success: true });
+    }
+
+    // ---------- LOAD ----------
+    if (url.pathname === "/load") {
+      const uid = await getUser(request);
+      if (!uid) return json({ error: "Unauthorized" }, 401);
+
+      const month = url.searchParams.get("month");
+
+      const { results } = await env.DB.prepare(`
+        SELECT e.*, c.name
+        FROM entries e
+        JOIN customers c ON e.customer_id = c.id
+        WHERE e.month=? AND c.user_id=?
+      `).bind(month, uid).all();
+
+      return json(results);
+    }
+
+    // ---------- ANALYTICS ----------
+    if (url.pathname === "/analytics") {
+      const uid = await getUser(request);
+      if (!uid) return json({ error: "Unauthorized" }, 401);
+
+      const { results } = await env.DB.prepare(`
+        SELECT 
+          e.month,
+          SUM(e.qty * e.rate * json_array_length(e.days)) revenue,
+          SUM(e.received) received
+        FROM entries e
+        JOIN customers c ON e.customer_id = c.id
+        WHERE c.user_id = ?
+        GROUP BY e.month
+        ORDER BY e.month
+      `).bind(uid).all();
+
+      return json(results);
+    }
+
+    // ---------- SERVE UI ----------
+    return env.ASSETS.fetch(request);
+  }
+};
