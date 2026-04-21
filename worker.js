@@ -36,132 +36,255 @@ const html = `
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Milk Delivery Management</title>
+<title>Milk Diary Pro</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
-body { font-family: 'Segoe UI', sans-serif; background: #eef2f3; padding: 20px; }
-.container { background: white; padding: 20px; border-radius: 12px; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-th, td { border: 1px solid #aaa; padding: 6px; text-align: center; }
-th { background: #34495e; color: white; }
-.sunday { background: #ffcccc !important; }
-input { width: 70px; }
-button { padding: 10px; background: green; color: white; border: none; }
+body { font-family: Arial; background:#eef2f3; padding:10px; }
+
+.container {
+    background:#fff;
+    padding:15px;
+    border-radius:10px;
+    box-shadow:0 10px 20px rgba(0,0,0,0.1);
+}
+
+h2 { text-align:center; }
+
+.controls {
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    justify-content:center;
+    margin-bottom:10px;
+}
+
+.table-wrapper { overflow:auto; }
+
+table {
+    border-collapse:collapse;
+    width:max-content;
+    min-width:100%;
+    font-size:12px;
+}
+
+th, td {
+    border:1px solid #999;
+    padding:6px;
+    text-align:center;
+    vertical-align:middle;
+}
+
+/* NAME FIX */
+.name-col { min-width:250px; }
+.name-input {
+    width:100%;
+    text-align:left;
+    word-break:break-word;
+}
+
+/* CENTER FIX */
+td input[type="number"],
+td input[type="checkbox"] {
+    display:block;
+    margin:auto;
+    text-align:center;
+}
+
+tbody tr { height:42px; }
+
+.sunday { background:#ffe0e0; }
+
+.total { background:#f2f2f2; font-weight:bold; }
+.net { background:#d9f7ef; font-weight:bold; }
+
+button {
+    padding:8px 12px;
+    border:none;
+    border-radius:5px;
+    background:#27ae60;
+    color:#fff;
+}
 </style>
 </head>
 
 <body>
 
-<div class="container">
-<h2>பால் விநியோக மேலாண்மை ☁️</h2>
+<div class="container" id="pdfArea">
 
+<h2>பால் விநியோகம் / Milk Delivery</h2>
+
+<div class="controls">
 <select id="year"></select>
-<select id="month" onchange="generate()">
-<option value="0">Jan</option>
-<option value="1">Feb</option>
-<option value="2">Mar</option>
-<option value="3">Apr</option>
-<option value="4">May</option>
-<option value="5">Jun</option>
-<option value="6">Jul</option>
-<option value="7">Aug</option>
-<option value="8">Sep</option>
-<option value="9">Oct</option>
-<option value="10">Nov</option>
-<option value="11">Dec</option>
-</select>
+<select id="month"></select>
 
-<table>
-<thead id="head"></thead>
-<tbody id="body"></tbody>
-</table>
-
-<br>
-<button onclick="addRow()">+ Add</button>
+<button onclick="addRow()">Add</button>
 <button onclick="save()">💾 Save</button>
+<button onclick="exportPDF()">PDF</button>
+<button onclick="exportExcel()">Excel</button>
+</div>
+
+<div class="table-wrapper">
+<table id="tbl">
+<thead></thead>
+<tbody></tbody>
+</table>
+</div>
+
 </div>
 
 <script>
-let yearEl = document.getElementById("year");
-for (let y=2020;y<=2045;y++){
-  let o=document.createElement("option");
-  o.value=y;o.text=y;
-  if(y===2026) o.selected=true;
-  yearEl.appendChild(o);
+
+let y=document.getElementById("year");
+let m=document.getElementById("month");
+
+/* YEAR */
+for(let i=2024;i<=2045;i++){
+let o=document.createElement("option");
+o.value=i;o.text=i;
+if(i==2026)o.selected=true;
+y.appendChild(o);
 }
 
-function daysInMonth(y,m){
-  return new Date(y,m+1,0).getDate();
+/* MONTH */
+let months=["Jan/ஜன","Feb/பிப்","Mar/மார்","Apr/ஏப்","May/மே","Jun/ஜூன்","Jul/ஜூலை","Aug/ஆக","Sep/செப்","Oct/அக்","Nov/நவ","Dec/டிச"];
+months.forEach((v,i)=>{
+let o=document.createElement("option");
+o.value=i;o.text=v;
+m.appendChild(o);
+});
+
+/* DAYS */
+function days(y,m){ return new Date(y,m+1,0).getDate(); }
+
+/* HEADER */
+function build(){
+let year=y.value,month=m.value,d=days(year,month);
+
+let t=\`<tr>
+<th>Sl No / வ.எண்</th>
+<th class="name-col">Customer Name / வாடிக்கையாளர் பெயர்</th>
+<th>Qty (L) / லிட்டர்</th>
+<th>Rate / விலை</th>\`;
+
+let tamil=['ஞா','தி','செ','பு','வி','வெ','ச'];
+
+for(let i=1;i<=d;i++){
+let day=new Date(year,month,i).getDay();
+let sun=day==0?'class="sunday"':'';
+t+=\`<th \${sun}>\${i}<br>\${tamil[day]}</th>\`;
 }
 
-function generate(){
-  let y=+yearEl.value;
-  let m=+document.getElementById("month").value;
-  let d=daysInMonth(y,m);
+t+=\`<th>Old Balance / கடந்த மாத நிலுவை</th>
+<th>Current Bill / இந்த மாத தொகை</th>
+<th>Amount Received / பெற்ற தொகை</th>
+<th>Net Balance / நிகர நிலுவை</th></tr>\`;
 
-  let h="<tr><th>Name</th><th>Qty</th><th>Rate</th>";
-  for(let i=1;i<=d;i++){
-    let date=new Date(y,m,i);
-    let s=date.getDay()==0?'class="sunday"':'';
-    h+=\`<th \${s}>\${i}</th>\`;
-  }
-  h+="<th>Total</th></tr>";
-  document.getElementById("head").innerHTML=h;
-}
-
-function addRow(data={}){
-  let y=+yearEl.value;
-  let m=+document.getElementById("month").value;
-  let d=daysInMonth(y,m);
-
-  let tr=document.createElement("tr");
-  tr.innerHTML=\`
-<td><input value="\${data.name||""}"></td>
-<td><input type="number" value="\${data.qty||1}" oninput="calc(this)"></td>
-<td><input type="number" value="\${data.rate||50}" oninput="calc(this)"></td>\`;
-
-  for(let i=0;i<d;i++){
-    let c=data.days?.[i]?"checked":"";
-    tr.innerHTML+=\`<td><input type="checkbox" \${c} onclick="calc(this)"></td>\`;
-  }
-
-  tr.innerHTML+=\`<td class="total">0</td>\`;
-  document.getElementById("body").appendChild(tr);
-  calc(tr);
-}
-
-function calc(el){
-  let tr=el.closest?el.closest("tr"):el;
-  let qty=+tr.children[1].firstChild.value||0;
-  let rate=+tr.children[2].firstChild.value||0;
-  let days=[...tr.querySelectorAll("input[type=checkbox]")].filter(x=>x.checked).length;
-  tr.querySelector(".total").innerText=qty*rate*days;
-}
-
-async function save(){
-  let rows=[...document.querySelectorAll("#body tr")].map(tr=>({
-    name: tr.children[0].firstChild.value,
-    qty: tr.children[1].firstChild.value,
-    rate: tr.children[2].firstChild.value,
-    days: [...tr.querySelectorAll("input[type=checkbox]")].map(x=>x.checked)
-  }));
-
-  await fetch("/save",{method:"POST",body:JSON.stringify({rows})});
-  alert("Saved");
-}
-
-async function load(){
-  let r=await fetch("/load");
-  let data=await r.json();
-
-  if(data.rows){
-    document.getElementById("body").innerHTML="";
-    data.rows.forEach(addRow);
-  }
-}
-
-generate();
+tbl.querySelector("thead").innerHTML=t;
 load();
+}
+
+/* ADD ROW */
+function addRow(data={}){
+let tr=tbl.querySelector("tbody").insertRow();
+let d=days(y.value,m.value);
+
+tr.innerHTML=\`
+<td>\${tbl.rows.length-1}</td>
+<td class="name-col"><input class="name-input" value="\${data.name||""}"></td>
+<td><input type="number" class="qty" value="\${data.qty||1}"></td>
+<td><input type="number" class="rate" value="\${data.rate||50}"></td>\`;
+
+for(let i=0;i<d;i++){
+let c=data.days?.[i]?"checked":"";
+tr.innerHTML+=\`<td><input type="checkbox" class="day" \${c}></td>\`;
+}
+
+tr.innerHTML+=\`
+<td><input type="number" class="old" value="\${data.old||0}"></td>
+<td class="total">0</td>
+<td><input type="number" class="rec" value="\${data.rec||0}"></td>
+<td class="net">0</td>\`;
+
+tr.querySelectorAll("input").forEach(i=>i.oninput=()=>calc(tr));
+
+calc(tr);
+}
+
+/* CALC */
+function calc(tr){
+let q=+tr.querySelector(".qty").value||0;
+let r=+tr.querySelector(".rate").value||0;
+let o=+tr.querySelector(".old").value||0;
+let rc=+tr.querySelector(".rec").value||0;
+
+let d=[...tr.querySelectorAll(".day")].filter(x=>x.checked).length;
+
+let bill=q*r*d;
+let net=bill+o-rc;
+
+tr.querySelector(".total").innerText=bill;
+tr.querySelector(".net").innerText=net;
+}
+
+/* SAVE */
+async function save(){
+let rows=[];
+document.querySelectorAll("tbody tr").forEach(tr=>{
+rows.push({
+name:tr.querySelector(".name-input").value,
+qty:tr.querySelector(".qty").value,
+rate:tr.querySelector(".rate").value,
+old:tr.querySelector(".old").value,
+rec:tr.querySelector(".rec").value,
+days:[...tr.querySelectorAll(".day")].map(x=>x.checked)
+});
+});
+
+await fetch("/save",{method:"POST",body:JSON.stringify({rows})});
+alert("Saved ✔");
+}
+
+/* LOAD */
+async function load(){
+let r=await fetch("/load");
+let data=await r.json();
+
+if(data.rows){
+tbl.querySelector("tbody").innerHTML="";
+data.rows.forEach(addRow);
+}
+}
+
+/* PDF */
+async function exportPDF(){
+const { jsPDF } = window.jspdf;
+let canvas=await html2canvas(document.getElementById("pdfArea"),{scale:2});
+let img=canvas.toDataURL("image/png");
+
+let pdf=new jsPDF('l','mm','a4');
+let w=297;
+let h=(canvas.height*w)/canvas.width;
+
+pdf.addImage(img,'PNG',0,0,w,h);
+pdf.save("MilkDiary.pdf");
+}
+
+/* EXCEL */
+function exportExcel(){
+let wb=XLSX.utils.table_to_book(document.getElementById("tbl"));
+XLSX.writeFile(wb,"MilkDiary.xlsx");
+}
+
+/* INIT */
+y.onchange=build;
+m.onchange=build;
+
+build();
+
 </script>
 
 </body>
