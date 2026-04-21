@@ -2,13 +2,11 @@ name = "milk-management"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
-# Static assets (your index.html and any other frontend files)
-[assets]
-directory = "./public"
-binding = "ASSETS"
+# ✅ Correct assets config
+assets = { directory = "./public" }
 
-# D1 Database binding
+# ✅ D1 Database
 [[d1_databases]]
 binding = "DB"
 database_name = "milk_db"
-database_id = "503995bf-23d9-4086-92cf-8c7117174d39"   # Replace after: wrangler d1 create milk-management-db
+database_id = "503995bf-23d9-4086-92cf-8c7117174d39"
