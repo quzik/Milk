@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Milk Management Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body { font-family:sans-serif; margin:0; background:#eef2f3; }
+header { background:#2c3e50; color:white; padding:15px; text-align:center; }
+.container { padding:15px; }
+.card { background:white; padding:15px; margin-bottom:15px; border-radius:10px; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th,td { border:1px solid #ccc; padding:5px; text-align:center; }
+th { background:#34495e; color:white; }
+button { padding:8px; background:#27ae60; color:white; border:none; }
+</style>
+</head>
+
+<body>
+
+<header>🥛 Milk Management</header>
+
+<div class="container">
+
+<div class="card">
+<input id="user" placeholder="Username">
+<input id="pass" type="password">
+<button onclick="login()">Login</button>
+</div>
+
+<div class="card">
+<input id="custName" placeholder="Customer name">
+<button onclick="addCustomer()">Add</button>
+</div>
+
+<div class="card">
+<select id="month"></select>
+<button onclick="save()">Save</button>
+</div>
+
+<div class="card">
+<table>
+<thead id="thead"></thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+
+<div class="card">
+<canvas id="chart"></canvas>
+</div>
+
+</div>
+
+<script>
+let customers=[], chart=null;
+
+for(let m=1;m<=12;m++){
+  month.innerHTML += `<option>${m}</option>`;
+}
+
+async function login(){
+  await fetch('/login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:user.value,password:pass.value})
+  });
+  loadCustomers();
+  loadChart();
+}
+
+async function addCustomer(){
+  await fetch('/customer',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:custName.value})
+  });
+  loadCustomers();
+}
+
+async function loadCustomers(){
+  const res = await fetch('/customers');
+  customers = await res.json();
+  renderTable();
+}
+
+function renderTable(){
+  thead.innerHTML="<tr><th>Name</th><th>Qty</th><th>Rate</th><th>Total</th></tr>";
+  tbody.innerHTML = customers.map(c=>`
+  <tr data-id="${c.id}">
+  <td>${c.name}</td>
+  <td><input class="qty" value="1"></td>
+  <td><input class="rate" value="50"></td>
+  <td class="total">0</td>
+  </tr>`).join("");
+
+  document.querySelectorAll(".qty,.rate").forEach(el=>el.oninput=calc);
+}
+
+function calc(){
+  document.querySelectorAll("#tbody tr").forEach(tr=>{
+    const q=+tr.querySelector(".qty").value||0;
+    const r=+tr.querySelector(".rate").value||0;
+    tr.querySelector(".total").innerText=q*r;
+  });
+}
+
+async function save(){
+  const rows=[...tbody.querySelectorAll("tr")].map(tr=>({
+    customer_id:tr.dataset.id,
+    qty:tr.querySelector(".qty").value,
+    rate:tr.querySelector(".rate").value,
+    days:[true]
+  }));
+
+  await fetch('/save',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({month:month.value,rows})
+  });
+
+  alert("Saved");
+}
+
+async function loadChart(){
+  const res = await fetch('/analytics');
+  const data = await res.json();
+
+  if(chart) chart.destroy();
+
+  chart=new Chart(document.getElementById("chart"),{
+    type:'bar',
+    data:{
+      labels:data.map(d=>d.month),
+      datasets:[{label:'Revenue',data:data.map(d=>d.revenue)}]
+    }
+  });
+}
+</script>
+
+</body>
+</html>
