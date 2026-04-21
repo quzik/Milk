@@ -1,66 +1,251 @@
-let customers = [];
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Milk Management Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-// Populate Month Selector ONCE
-const monthSelect = document.getElementById("month");
-const now = new Date();
-for(let i = 0; i < 6; i++) {
-    let d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    let val = d.toISOString().slice(0, 7); // "2024-05"
-    let opt = document.createElement("option");
-    opt.value = val;
-    opt.textContent = val;
-    monthSelect.appendChild(opt);
-}
+<style>
+body { font-family:sans-serif; margin:0; background:#eef2f3; }
+header { background:#2c3e50; color:white; padding:15px; text-align:center; }
+.container { padding:15px; }
+.card { background:white; padding:15px; margin-bottom:15px; border-radius:10px; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th,td { border:1px solid #ccc; padding:5px; text-align:center; }
+th { background:#34495e; color:white; }
+button { padding:8px; background:#27ae60; color:white; border:none; border-radius:4px; cursor:pointer; }
+button:disabled { background:#95a5a6; cursor:not-allowed; }
+input, select { padding:6px; margin:4px; border:1px solid #ccc; border-radius:4px; }
+.error { color:red; font-size:13px; margin-top:6px; }
+.success { color:green; font-size:13px; margin-top:6px; }
+#appSection { display:none; }
+</style>
+</head>
+
+<body>
+
+<header>🥛 Milk Management</header>
+
+<div class="container">
+
+  <!-- LOGIN -->
+  <div class="card" id="loginSection">
+    <h3>Login</h3>
+    <input id="user" placeholder="Username" autocomplete="username">
+    <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn" onclick="login()">Login</button>
+    <div id="loginMsg"></div>
+  </div>
+
+  <!-- APP (hidden until logged in) -->
+  <div id="appSection">
+
+    <div class="card">
+      <strong id="welcomeMsg"></strong>
+      <button onclick="logout()" style="background:#e74c3c; float:right;">Logout</button>
+    </div>
+
+    <!-- ADD CUSTOMER -->
+    <div class="card">
+      <h3>Add Customer</h3>
+      <input id="custName" placeholder="Customer name" maxlength="100">
+      <button onclick="addCustomer()">Add</button>
+      <div id="custMsg"></div>
+    </div>
+
+    <!-- MONTH SELECTOR + SAVE -->
+    <div class="card">
+      <h3>Monthly Entry</h3>
+      <select id="month"></select>
+      <button onclick="loadEntries()">Load</button>
+      <button onclick="save()" style="background:#2980b9;">Save</button>
+      <div id="saveMsg"></div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="card">
+      <table>
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- CHART -->
+    <div class="card">
+      <h3>Revenue Analytics</h3>
+      <canvas id="chart"></canvas>
+      <div id="chartMsg"></div>
+    </div>
+
+  </div><!-- /appSection -->
+
+</div><!-- /container -->
+
+<script>
+let customers = [], chart = null;
+
+// Populate month dropdown with names
+const monthNames = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December"
+];
+const monthEl = document.getElementById("month");
+monthNames.forEach((name, i) => {
+  const opt = document.createElement("option");
+  opt.value = i + 1;
+  opt.textContent = name;
+  monthEl.appendChild(opt);
+});
+// Default to current month
+monthEl.value = new Date().getMonth() + 1;
+
+// ---------- AUTH ----------
 
 async function login() {
-  const user = document.getElementById("user");
-  const pass = document.getElementById("pass");
-  
+  const username = document.getElementById("user").value.trim();
+  const password = document.getElementById("pass").value;
+  const msg = document.getElementById("loginMsg");
+  const btn = document.getElementById("loginBtn");
+
+  if (!username || !password) {
+    msg.className = "error";
+    msg.textContent = "Please enter username and password.";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Logging in...";
+  msg.textContent = "";
+
   try {
-    const res = await fetch('/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },  // ← REQUIRED
-      body: JSON.stringify({ username: user.value, password: pass.value })
+    const res = await fetch("/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
     });
-    
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    loadCustomers();
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      msg.className = "error";
+      msg.textContent = data.error || "Login failed.";
+      return;
+    }
+
+    // Show app, hide login
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("appSection").style.display = "block";
+    document.getElementById("welcomeMsg").textContent = `Welcome, ${username}`;
+
+    await loadCustomers();
+    await loadChart();
+
   } catch (err) {
-    alert("Login Failed: " + err.message);
-    console.error(err);
+    msg.className = "error";
+    msg.textContent = "Network error. Please try again.";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Login";
+  }
+}
+
+async function logout() {
+  try {
+    await fetch("/logout", { method: "POST" });
+  } catch (_) {}
+  document.getElementById("loginSection").style.display = "block";
+  document.getElementById("appSection").style.display = "none";
+  document.getElementById("user").value = "";
+  document.getElementById("pass").value = "";
+  document.getElementById("loginMsg").textContent = "";
+  customers = [];
+  document.getElementById("thead").innerHTML = "";
+  document.getElementById("tbody").innerHTML = "";
+}
+
+// ---------- CUSTOMERS ----------
+
+async function addCustomer() {
+  const nameEl = document.getElementById("custName");
+  const msg = document.getElementById("custMsg");
+  const name = nameEl.value.trim();
+
+  if (!name) {
+    msg.className = "error";
+    msg.textContent = "Customer name cannot be empty.";
+    return;
+  }
+
+  msg.textContent = "";
+
+  try {
+    const res = await fetch("/customer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      msg.className = "error";
+      msg.textContent = data.error || "Failed to add customer.";
+      return;
+    }
+
+    msg.className = "success";
+    msg.textContent = `Customer "${name}" added.`;
+    nameEl.value = "";
+    await loadCustomers();
+
+  } catch (err) {
+    msg.className = "error";
+    msg.textContent = "Network error.";
   }
 }
 
 async function loadCustomers() {
   try {
-    const res = await fetch('/customers');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const res = await fetch("/customers");
+
+    if (!res.ok) {
+      if (res.status === 401) showLoginError("Session expired. Please log in again.");
+      return;
+    }
+
     customers = await res.json();
 
-    const savedRes = await fetch(`/load?month=${encodeURIComponent(monthSelect.value)}`);
-    if (!savedRes.ok) throw new Error(`HTTP ${savedRes.status}`);
-    const savedData = await savedRes.json();
-    
-    renderTable(savedData);
+    if (!Array.isArray(customers)) {
+      customers = [];
+    }
+
+    renderTable();
+
   } catch (err) {
-    alert("Failed to load data: " + err.message);
-    console.error(err);
+    console.error("Failed to load customers:", err);
   }
 }
 
-function renderTable(savedData = []) {
-  const tbody = document.getElementById("tbody");
-  tbody.innerHTML = customers.map(c => {
-    const saved = savedData.find(s => parseInt(s.customer_id) === parseInt(c.id)) || { qty: 1, rate: 50 };
-    return `
-      <tr data-id="${c.id}">
-        <td>${c.name}</td>
-        <td><input type="number" class="qty" value="${saved.qty}" min="0"></td>
-        <td><input type="number" class="rate" value="${saved.rate}" min="0" step="0.01"></td>
-        <td><input type="checkbox" class="delivered" checked></td>
-        <td class="total">0</td>
-      </tr>`;
-  }).join("");
+// ---------- TABLE ----------
+
+function renderTable() {
+  document.getElementById("thead").innerHTML = `
+    <tr>
+      <th>Name</th>
+      <th>Qty (L)</th>
+      <th>Rate (₹)</th>
+      <th>Total (₹)</th>
+    </tr>`;
+
+  document.getElementById("tbody").innerHTML = customers.map(c => `
+    <tr data-id="${escapeAttr(c.id)}">
+      <td>${escapeHtml(c.name)}</td>
+      <td><input class="qty" type="number" min="0" step="0.1" value="1"></td>
+      <td><input class="rate" type="number" min="0" step="0.5" value="50"></td>
+      <td class="total">50.00</td>
+    </tr>`).join("");
+
+  document.querySelectorAll(".qty, .rate").forEach(el => el.addEventListener("input", calc));
   calc();
 }
 
@@ -68,30 +253,173 @@ function calc() {
   document.querySelectorAll("#tbody tr").forEach(tr => {
     const q = parseFloat(tr.querySelector(".qty").value) || 0;
     const r = parseFloat(tr.querySelector(".rate").value) || 0;
-    const isDelivered = tr.querySelector(".delivered").checked;
-    tr.querySelector(".total").innerText = isDelivered ? (q * r).toFixed(2) : "0.00";
+    tr.querySelector(".total").textContent = (q * r).toFixed(2);
   });
 }
 
-async function save() {
-  try {
-    const rows = [...document.querySelectorAll("#tbody tr")].map(tr => ({
-      customer_id: parseInt(tr.dataset.id),
-      qty: parseFloat(tr.querySelector(".qty").value) || 0,
-      rate: parseFloat(tr.querySelector(".rate").value) || 0,
-      delivered: tr.querySelector(".delivered").checked  // ← boolean, not array
-    }));
+// ---------- LOAD ENTRIES ----------
 
-    const res = await fetch('/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ month: monthSelect.value, rows })
+async function loadEntries() {
+  const month = document.getElementById("month").value;
+  try {
+    const res = await fetch(`/load?month=${encodeURIComponent(month)}`);
+    if (!res.ok) return;
+    const entries = await res.json();
+
+    if (!Array.isArray(entries)) return;
+
+    // Pre-fill table rows from saved entries
+    document.querySelectorAll("#tbody tr").forEach(tr => {
+      const id = tr.dataset.id;
+      const entry = entries.find(e => String(e.customer_id) === String(id));
+      if (entry) {
+        tr.querySelector(".qty").value = entry.qty ?? 1;
+        tr.querySelector(".rate").value = entry.rate ?? 50;
+      }
     });
-    
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    alert("Data Saved Successfully!");
+    calc();
   } catch (err) {
-    alert("Save Failed: " + err.message);
-    console.error(err);
+    console.error("Failed to load entries:", err);
   }
 }
+
+// ---------- SAVE ----------
+
+async function save() {
+  const month = document.getElementById("month").value;
+  const msg = document.getElementById("saveMsg");
+  msg.textContent = "";
+
+  const rows = [...document.querySelectorAll("#tbody tr")].map(tr => ({
+    customer_id: tr.dataset.id,
+    qty: parseFloat(tr.querySelector(".qty").value) || 0,
+    rate: parseFloat(tr.querySelector(".rate").value) || 0,
+    days: [true]
+  }));
+
+  if (rows.length === 0) {
+    msg.className = "error";
+    msg.textContent = "No customers to save.";
+    return;
+  }
+
+  try {
+    const res = await fetch("/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ month, rows })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      msg.className = "error";
+      msg.textContent = data.error || "Save failed.";
+      return;
+    }
+
+    msg.className = "success";
+    msg.textContent = "Saved successfully.";
+    await loadChart();
+
+  } catch (err) {
+    msg.className = "error";
+    msg.textContent = "Network error while saving.";
+  }
+}
+
+// ---------- CHART ----------
+
+async function loadChart() {
+  const msg = document.getElementById("chartMsg");
+  msg.textContent = "";
+
+  try {
+    const res = await fetch("/analytics");
+
+    if (!res.ok) {
+      msg.className = "error";
+      msg.textContent = "Failed to load analytics.";
+      return;
+    }
+
+    const data = await res.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      msg.textContent = "No analytics data yet.";
+      return;
+    }
+
+    if (chart) chart.destroy();
+
+    chart = new Chart(document.getElementById("chart"), {
+      type: "bar",
+      data: {
+        labels: data.map(d => monthNames[(parseInt(d.month) - 1)] || d.month),
+        datasets: [
+          {
+            label: "Revenue (₹)",
+            data: data.map(d => d.revenue ?? 0),
+            backgroundColor: "#27ae60"
+          },
+          {
+            label: "Received (₹)",
+            data: data.map(d => d.received ?? 0),
+            backgroundColor: "#2980b9"
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: "top" } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+
+  } catch (err) {
+    msg.className = "error";
+    msg.textContent = "Network error loading chart.";
+  }
+}
+
+// ---------- UTILS ----------
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function escapeAttr(str) {
+  return String(str).replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
+function showLoginError(msg) {
+  document.getElementById("appSection").style.display = "none";
+  document.getElementById("loginSection").style.display = "block";
+  document.getElementById("loginMsg").className = "error";
+  document.getElementById("loginMsg").textContent = msg;
+}
+
+// Check session on page load
+(async () => {
+  try {
+    const res = await fetch("/customers");
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        document.getElementById("loginSection").style.display = "none";
+        document.getElementById("appSection").style.display = "block";
+        customers = data;
+        renderTable();
+        await loadChart();
+      }
+    }
+  } catch (_) {}
+})();
+</script>
+
+</body>
+</html>
