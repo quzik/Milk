@@ -9,368 +9,174 @@
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
 <style>
-body {
-  margin: 0;
-  font-family: "Segoe UI", sans-serif;
-  background: #f4f7f6;
-  color: #333;
-  opacity: 0;
-  transition: 0.5s ease;
-}
-
-header {
-  background: linear-gradient(135deg,#2c3e50,#3498db);
-  color: white;
-  padding: 18px;
-  text-align: center;
-  font-size: 20px;
-  font-weight: bold;
-  letter-spacing: 1px;
-}
-
-.container { padding: 15px; max-width: 1200px; margin: auto; }
-
-.card {
-  background: white;
-  padding: 15px;
-  margin: 12px 0;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-  transition: 0.3s;
-}
-.card:hover { transform: translateY(-3px); }
-
-.flex-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-input, select {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  outline: none;
-  transition: 0.2s;
-}
-input:focus { border-color: #3498db; transform: scale(1.02); }
-
-button {
-  padding: 9px 12px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: 0.2s;
-}
-
-button:hover { transform: scale(1.05); }
-
-.btn-green { background:#27ae60; color:white; }
-.btn-red { background:#e74c3c; color:white; }
-.btn-blue { background:#3498db; color:white; }
-
-.table-wrapper {
-  overflow-x: auto;
-  max-height: 65vh;
-  border: 1px solid #eee;
-  border-radius: 8px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 1200px;
-  font-size: 13px;
-}
-
-th, td {
-  border: 1px solid #eee;
-  padding: 6px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-th {
-  background: #34495e;
-  color: white;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-
-.sticky-col {
-  position: sticky;
-  left: 0;
-  background: #ecf0f1;
-  font-weight: bold;
-  z-index: 3;
-}
-
-.litre-input {
-  width: 45px;
-  text-align: center;
-  border-radius: 5px;
-}
-
-.litre-input:focus {
-  background: #e8f0fe;
-  transform: scale(1.1);
-}
-
-.editable {
-  font-weight: bold;
-  cursor: text;
-}
-
-#app { display: none; }
-
-#loader {
-  display: none;
-  color: #3498db;
-  font-weight: bold;
-}
-
-tr {
-  animation: fadeIn 0.25s ease;
-}
-
-@keyframes fadeIn {
-  from {opacity:0; transform: translateY(5px);}
-  to {opacity:1; transform: translateY(0);}
-}
+body {margin:0;font-family:Segoe UI;background:#f4f7f6;opacity:0;transition:0.4s;}
+header{background:linear-gradient(135deg,#2c3e50,#3498db);color:white;padding:15px;text-align:center;font-weight:bold;}
+.container{max-width:1200px;margin:auto;padding:10px;}
+.card{background:white;padding:15px;margin:10px 0;border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,0.1);transition:0.3s;}
+.card:hover{transform:translateY(-3px);}
+.flex{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+input,select{padding:8px;border:1px solid #ddd;border-radius:6px;}
+button{padding:8px 12px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;transition:0.2s;}
+button:hover{transform:scale(1.05);}
+.green{background:#27ae60;color:white;}
+.red{background:#e74c3c;color:white;}
+.blue{background:#3498db;color:white;}
+table{width:100%;border-collapse:collapse;min-width:1000px;}
+th,td{border:1px solid #eee;padding:5px;text-align:center;}
+th{background:#34495e;color:white;position:sticky;top:0;}
+.sticky{position:sticky;left:0;background:#ecf0f1;font-weight:bold;}
+#app{display:none;}
+tr{animation:fade .2s;}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 
 <body>
-
 <header>🥛 Milk Management Pro</header>
 
 <div class="container">
 
-  <!-- LOGIN -->
-  <div class="card" id="loginBox">
-    <h3>Login</h3>
-    <input id="user" placeholder="Username" class="w-100">
-    <input id="pass" type="password" placeholder="Password" class="w-100">
-    <button class="btn-green w-100" onclick="login()">Login</button>
-    <p id="msg" style="color:red;"></p>
-  </div>
+<!-- LOGIN -->
+<div class="card" id="loginBox">
+<h3>Login</h3>
+<input id="user" placeholder="Username"><br>
+<input id="pass" type="password" placeholder="Password"><br><br>
+<button class="green" onclick="login()">Login</button>
+<p id="msg" style="color:red"></p>
+</div>
 
-  <!-- APP -->
-  <div id="app">
+<!-- APP -->
+<div id="app">
 
-    <div class="card flex-row" style="justify-content: space-between;">
-      <h3>Dashboard</h3>
-      <button class="btn-red" onclick="logout()">Logout</button>
-    </div>
+<div class="card flex">
+<input id="cname" placeholder="Customer Name">
+<input id="crate" type="number" value="50">
+<button class="green" onclick="addCustomer()">Add</button>
+<input id="search" placeholder="Search..." oninput="filter()">
+</div>
 
-    <!-- ADD CUSTOMER -->
-    <div class="card flex-row">
-      <input id="cname" placeholder="Customer Name">
-      <input id="crate" type="number" value="50" placeholder="Rate">
-      <button class="btn-green" onclick="addCustomer()">Add</button>
+<div class="card flex">
+<select id="month" onchange="load()"></select>
+<button class="green" onclick="save()">Save</button>
+<button class="blue" onclick="exportExcel()">Excel</button>
+</div>
 
-      <input id="search" placeholder="Search..." oninput="filterTable()" style="margin-left:auto;">
-    </div>
+<div class="card" style="overflow:auto;max-height:70vh;">
+<table>
+<thead id="thead"></thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
 
-    <!-- TABLE -->
-    <div class="card">
-
-      <div class="flex-row" style="justify-content: space-between;">
-        <div class="flex-row">
-          <select id="month" onchange="loadData()"></select>
-          <button class="btn-green" onclick="save()">💾 Save</button>
-          <span id="loader">Saving...</span>
-        </div>
-
-        <button class="btn-blue" onclick="exportExcel()">📊 Excel</button>
-      </div>
-
-      <div class="table-wrapper">
-        <table id="table">
-          <thead id="thead"></thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-
-    </div>
-
-  </div>
+</div>
 </div>
 
 <script>
-let customers = [];
-const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const month = document.getElementById("month");
+let customers=[];
 
-months.forEach((m,i)=>{
-  let o=document.createElement("option");
-  o.value=i+1;o.text=m;
-  month.appendChild(o);
-});
-month.value=new Date().getMonth()+1;
+const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const m=document.getElementById("month");
+months.forEach((x,i)=>m.add(new Option(x,i+1)));
+m.value=new Date().getMonth()+1;
 
 // LOGIN
 async function login(){
-  let res = await fetch("/login",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({username:user.value,password:pass.value})
-  });
-  if(res.ok) location.reload();
-  else msg.innerText="Invalid Login";
-}
-
-// LOGOUT
-async function logout(){
-  await fetch("/logout");
-  location.reload();
+let r=await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},
+body:JSON.stringify({username:user.value,password:pass.value})});
+if(r.ok)location.reload();else msg.innerText="Wrong login";
 }
 
 // LOAD CUSTOMERS
 async function loadCustomers(){
-  let res = await fetch("/customers");
-  customers = await res.json();
-  loadData();
+customers=await (await fetch("/customers")).json();
+load();
 }
 
-// ADD CUSTOMER
+// ADD
 async function addCustomer(){
-  await fetch("/customer",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({name:cname.value,rate:crate.value})
-  });
-  cname.value="";
-  loadCustomers();
+await fetch("/customer",{method:"POST",headers:{"Content-Type":"application/json"},
+body:JSON.stringify({name:cname.value,rate:crate.value})});
+cname.value="";
+loadCustomers();
 }
 
 // DELETE
-async function deleteCustomer(id){
-  await fetch("/customer",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
-  loadCustomers();
+async function del(id){
+await fetch("/customer",{method:"DELETE",headers:{"Content-Type":"application/json"},
+body:JSON.stringify({id})});
+loadCustomers();
 }
 
-// UPDATE NAME/RATE
-async function updateCustomer(id,name,rate){
-  await fetch("/customer",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,name,rate})});
+// LOAD
+async function load(){
+let data=await (await fetch("/load?month="+m.value)).json();
+render(data);
 }
 
-// FILTER
-function filterTable(){
-  let t = search.value.toLowerCase();
-  document.querySelectorAll("#tbody tr").forEach(r=>{
-    r.style.display = r.innerText.toLowerCase().includes(t)?"":"none";
-  });
-}
+// RENDER
+function render(data){
+let days=new Date(2024,m.value,0).getDate();
 
-// DAYS
-function days(m){
-  return new Date(new Date().getFullYear(),m,0).getDate();
-}
+let h="<tr><th>#</th><th class='sticky'>Name</th><th>Rate</th>";
+for(let i=1;i<=days;i++)h+=`<th>${i}</th>`;
+h+="<th>Total</th><th>Net</th><th>Action</th></tr>";
+thead.innerHTML=h;
 
-// LOAD TABLE
-async function loadData(){
-  let res = await fetch("/load?month="+month.value);
-  let data = await res.json();
+tbody.innerHTML=customers.map((c,i)=>{
+let e=data.find(x=>x.customer_id==c.id)||{};
+let arr=e.days?JSON.parse(e.days):Array(days).fill("");
 
-  let d = days(month.value);
-
-  let head = `<tr>
-    <th>Sl</th>
-    <th class="sticky-col">Name</th>
-    <th>Rate</th>`;
-
-  for(let i=1;i<=d;i++) head+=`<th>${i}</th>`;
-
-  head+=`<th>Total L</th><th>Total ₹</th><th>Old</th><th>Rec</th><th>Net</th><th>Act</th></tr>`;
-
-  thead.innerHTML=head;
-
-  tbody.innerHTML=customers.map((c,i)=>{
-    let e=data.find(x=>x.customer_id==c.id)||{};
-    let days=e.days?JSON.parse(e.days):Array(d).fill("");
-
-    let inputs="";
-    let total=0;
-
-    for(let i=0;i<d;i++){
-      inputs+=`<td><input class="litre-input" type="number" value="${days[i]||""}" oninput="calc(this)"></td>`;
-    }
-
-    return `<tr data-id="${c.id}">
-      <td>${i+1}</td>
-      <td contenteditable="true" class="editable" onblur="updateCustomer(${c.id},this.innerText,${c.default_rate})">${c.name}</td>
-      <td><input type="number" value="${e.rate||c.default_rate}" oninput="calc(this)"></td>
-      ${inputs}
-      <td class="tl">0</td>
-      <td class="tr">0</td>
-      <td><input class="old" type="number" value="${e.old_balance||0}" oninput="calc(this)"></td>
-      <td><input class="rec" type="number" value="${e.received||0}" oninput="calc(this)"></td>
-      <td class="net">0</td>
-      <td><button class="btn-red" onclick="deleteCustomer(${c.id})">🗑</button></td>
-    </tr>`;
-  }).join("");
-
-  document.querySelectorAll("tr").forEach(r=>calc(r));
-}
-
-// CALC
-function calc(el){
-  let tr=el.closest("tr");
-  let rate=+tr.querySelector("input[type=number]").value||0;
-
-  let litres=0;
-  tr.querySelectorAll(".litre-input").forEach(i=>litres+=+i.value||0);
-
-  let total=litres*rate;
-  let old=+tr.querySelector(".old").value||0;
-  let rec=+tr.querySelector(".rec").value||0;
-
-  tr.querySelector(".tl").innerText=litres.toFixed(1);
-  tr.querySelector(".tr").innerText=total.toFixed(2);
-  tr.querySelector(".net").innerText=((old+total)-rec).toFixed(2);
+return `<tr>
+<td>${i+1}</td>
+<td class="sticky">${c.name}</td>
+<td><input value="${e.rate||c.default_rate||50}"></td>
+${arr.map(v=>`<td><input value="${v||0}"></td>`).join("")}
+<td>0</td>
+<td>0</td>
+<td><button class="red" onclick="del(${c.id})">X</button></td>
+</tr>`;
+}).join("");
 }
 
 // SAVE
 async function save(){
-  loader.style.display="inline";
-  let rows=[...document.querySelectorAll("tr[data-id]")].map(tr=>{
-    return {
-      customer_id:tr.dataset.id,
-      rate:+tr.querySelector("input[type=number]").value,
-      old_balance:+tr.querySelector(".old").value,
-      received:+tr.querySelector(".rec").value,
-      days:[...tr.querySelectorAll(".litre-input")].map(i=>+i.value||0)
-    };
-  });
+let rows=[...document.querySelectorAll("tbody tr")].map(tr=>{
+return{
+customer_id:1,
+rate:50,
+days:[]
+};
+});
+await fetch("/save",{method:"POST",headers:{"Content-Type":"application/json"},
+body:JSON.stringify({month:m.value,rows})});
+alert("Saved");
+}
 
-  await fetch("/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({month:month.value,rows})});
-
-  loader.style.display="none";
-  alert("Saved!");
+// FILTER
+function filter(){
+let t=search.value.toLowerCase();
+document.querySelectorAll("tbody tr").forEach(r=>{
+r.style.display=r.innerText.toLowerCase().includes(t)?"":"none";
+});
 }
 
 // EXPORT
 function exportExcel(){
-  let wb=XLSX.utils.table_to_book(document.getElementById("table"));
-  XLSX.writeFile(wb,"Milk_Report.xlsx");
+let wb=XLSX.utils.table_to_book(document.querySelector("table"));
+XLSX.writeFile(wb,"milk.xlsx");
 }
 
 // INIT
 (async()=>{
-  let res=await fetch("/customers");
-  if(res.ok){
-    document.getElementById("loginBox").style.display="none";
-    document.getElementById("app").style.display="block";
-    customers=await res.json();
-    loadData();
-  }
-  document.body.style.opacity=1;
+let r=await fetch("/customers");
+if(r.ok){
+document.getElementById("loginBox").style.display="none";
+document.getElementById("app").style.display="block";
+customers=await r.json();
+load();
+}
+document.body.style.opacity=1;
 })();
 </script>
-
 </body>
 </html>
