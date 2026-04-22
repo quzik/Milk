@@ -1,248 +1,212 @@
 <!DOCTYPE html>
-<html lang="ta">
+<html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Milk Management</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
-  body { margin:0; font-family:sans-serif; background:#eef2f3; }
-  header { background:#2c3e50; color:white; padding:15px; text-align:center; font-size: 18px; font-weight: bold;}
-  .container { padding:10px; max-width: 600px; margin: auto; }
-  .card { background:white; padding:15px; margin-bottom:15px; border-radius:10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-  h3 { margin-top: 0; color: #2c3e50; }
-  input, select { width:100%; padding:10px; margin:5px 0 10px 0; border:1px solid #ccc; border-radius:5px; box-sizing: border-box; }
-  button { width:100%; padding:12px; border:none; border-radius:5px; background:#27ae60; color:white; font-weight: bold; cursor: pointer;}
-  button:hover { background:#2ecc71; }
-  .btn-blue { background: #3498db; margin-bottom: 8px; }
-  .btn-red { background: #e74c3c; margin-top: 10px; }
-  .error { color:red; font-size:13px; text-align: center; margin-top: 5px;}
-  .success { color:green; font-size:13px; text-align: center; margin-top: 5px;}
-  table { width:100%; border-collapse:collapse; font-size:13px; margin-top: 10px; }
-  th, td { border:1px solid #ccc; padding:8px; text-align:center; }
-  th { background:#34495e; color:white; }
-  input[type="number"] { width: 60px; padding: 5px; text-align: center; }
+  body { margin:0; font-family:sans-serif; background:#f4f7f6; color:#333; }
+  header { background:#2c3e50; color:white; padding:15px; text-align:center; font-weight:bold; }
+  .container { padding:10px; max-width:900px; margin:auto; }
+  .card { background:white; padding:15px; margin-bottom:15px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
+  input, select { width:100%; padding:10px; margin:5px 0; border:1px solid #ddd; border-radius:4px; box-sizing:border-box; }
+  button { width:100%; padding:12px; border:none; border-radius:4px; background:#27ae60; color:white; font-weight:bold; cursor:pointer; }
+  .btn-red { background:#e74c3c; margin-top:10px; }
+  .table-wrapper { overflow-x:auto; margin-top:10px; border:1px solid #eee; }
+  table { width:100%; border-collapse:collapse; font-size:12px; min-width:800px; }
+  th, td { border:1px solid #eee; padding:6px; text-align:center; }
+  th { background:#f8f9fa; position:sticky; top:0; }
+  .day-check { transform:scale(1.2); cursor:pointer; }
   #app { display:none; }
+  .sticky-col { position:sticky; left:0; background:white; font-weight:bold; border-right:2px solid #ddd; z-index:1; }
 </style>
 </head>
-
 <body>
 
 <header>🥛 Milk Management Pro</header>
 
 <div class="container">
-
-  <div class="card" id="loginSection">
+  <div class="card" id="loginBox">
     <h3>Login</h3>
     <input id="user" placeholder="Username">
     <input id="pass" type="password" placeholder="Password">
     <button onclick="login()">Login</button>
-    <div id="msg"></div>
+    <div id="msg" style="color:red; margin-top:10px;"></div>
   </div>
 
   <div id="app">
-
     <div class="card">
-      <h3 id="welcome" style="margin-bottom:0;">Welcome</h3>
+      <h3 id="welcome"></h3>
       <button onclick="logout()" class="btn-red">Logout</button>
     </div>
 
     <div class="card">
       <h3>Add Customer</h3>
-      <input id="cname" placeholder="Customer name">
-      <button onclick="addCustomer()">Add</button>
-      <div id="cmsg"></div>
+      <input id="cname" placeholder="Name">
+      <button onclick="addCustomer()">Add Customer</button>
     </div>
 
     <div class="card">
-      <h3>Manage Entries</h3>
-      <select id="month"></select>
-      <button onclick="loadEntries()" class="btn-blue">Load Month Data</button>
-      <button onclick="save()">Save Data</button>
-      <div id="smsg"></div>
-    </div>
-
-    <div class="card" style="overflow-x: auto;">
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Qty</th>
-            <th>Rate</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
+      <h3>Month Selection</h3>
+      <select id="monthSelect" onchange="loadEntries()"></select>
+      <button onclick="save()" style="margin-top:10px;">Save Data</button>
+      <div id="smsg" style="color:green; font-size:12px; margin-top:5px;"></div>
     </div>
 
     <div class="card">
-      <h3>Revenue Analytics</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Revenue Chart</h3>
       <canvas id="chartCanvas"></canvas>
     </div>
-
   </div>
-
 </div>
 
 <script>
 let customers = [], chart;
-
-// Month dropdown
 const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const monthEl = document.getElementById("month");
-months.forEach((m,i)=>{
+const monthEl = document.getElementById("monthSelect");
+
+// Setup Month Dropdown
+months.forEach((m,i) => {
   let o = document.createElement("option");
-  o.value = i + 1;
-  o.text = m;
+  o.value = i + 1; o.text = m;
   monthEl.appendChild(o);
 });
-monthEl.value = new Date().getMonth() + 1; // Select current month automatically
+monthEl.value = new Date().getMonth() + 1;
 
-// ---------- LOGIN ----------
 async function login() {
-  const userBtn = document.getElementById("user");
-  const passBtn = document.getElementById("pass");
-  const msg = document.getElementById("msg");
-
-  const res = await fetch("/login",{
+  const res = await fetch("/login", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({username:userBtn.value, password:passBtn.value})
+    body:JSON.stringify({username:user.value, password:pass.value})
   });
-
-  const d = await res.json();
-  if(!res.ok){
-    msg.className="error";
-    msg.innerText=d.error;
-    return;
-  }
-  
-  // Refresh page on success to load the dashboard
-  location.reload(); 
+  if(res.ok) location.reload();
+  else document.getElementById("msg").innerText = "Invalid Login";
 }
 
-// ---------- LOGOUT ----------
-async function logout(){
-  await fetch("/logout"); 
+async function logout() {
+  await fetch("/logout");
   location.reload();
 }
 
-// ---------- CUSTOMERS ----------
-async function addCustomer(){
-  const cname = document.getElementById("cname");
-  const res = await fetch("/customer",{
+async function addCustomer() {
+  await fetch("/customer", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({name:cname.value})
   });
-
-  if(res.ok){
-    cname.value="";
-    loadCustomers();
-  }
+  cname.value = "";
+  loadCustomers();
 }
 
-async function loadCustomers(){
+async function loadCustomers() {
   const res = await fetch("/customers");
   if(res.ok) {
     customers = await res.json();
-    render();
+    loadEntries();
   }
 }
 
-// ---------- TABLE ----------
-function render(){
-  const tbody = document.getElementById("tbody");
-  tbody.innerHTML = customers.map(c=>`
-  <tr data-id="${c.id}">
-    <td>${c.name}</td>
-    <td><input type="number" class="qty" value="1" oninput="calc()"></td>
-    <td><input type="number" class="rate" value="50" oninput="calc()"></td>
-    <td class="total">50.00</td>
-  </tr>`).join("");
+function daysInMonth(m) {
+  return new Date(new Date().getFullYear(), m, 0).getDate();
+}
+
+async function loadEntries() {
+  const res = await fetch("/load?month=" + monthEl.value);
+  const savedData = await res.json();
+  render(savedData);
+  loadChart();
+}
+
+function render(savedData = []) {
+  const totalDays = daysInMonth(monthEl.value);
+  
+  // Header
+  let headHtml = `<tr><th class="sticky-col">Name</th><th>Rate</th>`;
+  for(let i=1; i<=totalDays; i++) headHtml += `<th>${i}</th>`;
+  headHtml += `<th>Total</th></tr>`;
+  document.getElementById("thead").innerHTML = headHtml;
+
+  // Body
+  document.getElementById("tbody").innerHTML = customers.map(c => {
+    const entry = savedData.find(e => e.customer_id == c.id) || {};
+    const days = entry.days ? JSON.parse(entry.days) : [];
+    let dayCells = "";
+    for(let i=0; i<totalDays; i++) {
+      dayCells += `<td><input type="checkbox" class="day-check" onchange="calc()" ${days[i]?'checked':''}></td>`;
+    }
+    return `<tr data-id="${c.id}">
+      <td class="sticky-col">${c.name}</td>
+      <td><input type="number" class="rate" value="${entry.rate || 50}" oninput="calc()" style="width:45px"></td>
+      ${dayCells}
+      <td class="total">0.00</td>
+    </tr>`;
+  }).join("");
   calc();
 }
 
-function calc(){
-  document.querySelectorAll("#tbody tr").forEach(tr=>{
-    let q = parseFloat(tr.querySelector(".qty").value) || 0;
-    let r = parseFloat(tr.querySelector(".rate").value) || 0;
-    tr.querySelector(".total").innerText = (q * r).toFixed(2);
+function calc() {
+  document.querySelectorAll("#tbody tr").forEach(tr => {
+    const rate = parseFloat(tr.querySelector(".rate").value) || 0;
+    const count = tr.querySelectorAll(".day-check:checked").length;
+    tr.querySelector(".total").innerText = (rate * count).toFixed(2);
   });
 }
 
-// ---------- SAVE ----------
-async function save(){
-  const smsg = document.getElementById("smsg");
-  let rows = [...document.querySelectorAll("#tbody tr")].map(tr=>({
-    customer_id: tr.dataset.id,
-    qty: tr.querySelector(".qty").value,
-    rate: tr.querySelector(".rate").value,
-    days: [true]
-  }));
-
-  await fetch("/save",{
+async function save() {
+  const rows = [...document.querySelectorAll("#tbody tr")].map(tr => {
+    const dayArr = [...tr.querySelectorAll(".day-check")].map(cb => cb.checked);
+    return {
+      customer_id: tr.dataset.id,
+      qty: dayArr.filter(v => v).length,
+      rate: tr.querySelector(".rate").value,
+      days: dayArr
+    };
+  });
+  const res = await fetch("/save", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({month: monthEl.value, rows})
   });
-
-  smsg.className = "success";
-  smsg.innerText = "Saved successfully!";
-  setTimeout(() => smsg.innerText = "", 3000); // clear message after 3 seconds
-  loadChart();
+  if(res.ok) {
+    document.getElementById("smsg").innerText = "Data Saved!";
+    setTimeout(() => document.getElementById("smsg").innerText = "", 2000);
+    loadChart();
+  }
 }
 
-// ---------- LOAD ENTRIES ----------
-async function loadEntries(){
-  const res = await fetch("/load?month=" + monthEl.value);
-  const data = await res.json();
-
-  document.querySelectorAll("#tbody tr").forEach(tr=>{
-    const e = data.find(x => x.customer_id == tr.dataset.id);
-    if(e){
-      tr.querySelector(".qty").value = e.qty;
-      tr.querySelector(".rate").value = e.rate;
-    } else {
-      // Reset if no data found for this month
-      tr.querySelector(".qty").value = 1; 
-      tr.querySelector(".rate").value = 50;
-    }
-  });
-  calc();
-}
-
-// ---------- CHART ----------
-async function loadChart(){
+async function loadChart() {
   const res = await fetch("/analytics");
   const d = await res.json();
   const ctx = document.getElementById("chartCanvas").getContext("2d");
-
   if(chart) chart.destroy();
-
   chart = new Chart(ctx, {
-    type: "bar",
+    type:"bar",
     data: {
-      labels: d.map(x => months[parseInt(x.month) - 1]),
-      datasets: [{label: "Revenue (₹)", data: d.map(x => x.revenue), backgroundColor: '#27ae60'}]
+      labels: d.map(x => months[x.month-1]),
+      datasets: [{ label:"Revenue", data: d.map(x=>x.revenue), backgroundColor:"#27ae60" }]
     }
   });
 }
 
-// ---------- AUTO INIT ----------
-(async ()=>{
+// Auto Init
+(async () => {
   const res = await fetch("/customers");
-  if(res.ok){
-    // If logged in, hide login screen and show the app
-    document.getElementById("loginSection").style.display = "none";
+  if(res.ok) {
+    document.getElementById("loginBox").style.display = "none";
     document.getElementById("app").style.display = "block";
     customers = await res.json();
-    render();
-    loadChart();
+    loadEntries();
   }
 })();
 </script>
-
 </body>
 </html>
