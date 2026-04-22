@@ -2,106 +2,119 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    const json = (d,s=200)=>new Response(JSON.stringify(d),{status:s,headers:{"Content-Type":"application/json"}});
+    const json = (data, status = 200) =>
+      new Response(JSON.stringify(data), {
+        status,
+        headers: { "Content-Type": "application/json" },
+      });
 
-    const getCookie = (req,name)=>{
-      const c=req.headers.get("Cookie")||"";
-      const m=c.match(new RegExp(`${name}=([^;]+)`));
-      return m?m[1]:null;
+    const getCookie = (req, name) => {
+      const cookie = req.headers.get("Cookie") || "";
+      const match = cookie.match(new RegExp(`${name}=([^;]+)`));
+      return match ? match[1] : null;
     };
 
-    const getUser = async (req)=>{
-      const token=getCookie(req,"session");
-      if(!token) return null;
+    const getUser = async (req) => {
+      const token = getCookie(req, "session");
+      if (!token) return null;
 
-      const s=await env.DB.prepare(
+      const s = await env.DB.prepare(
         "SELECT user_id FROM sessions WHERE token=?"
       ).bind(token).first();
 
-      return s?.user_id;
-    };
-
-    const hash = async (p)=>{
-      const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(p));
-      return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
+      return s?.user_id || null;
     };
 
     try {
 
-      // LOGIN
-      if(url.pathname==="/login" && request.method==="POST"){
-        const {username,password}=await request.json();
-        const user=await env.DB.prepare("SELECT * FROM users WHERE username=?").bind(username).first();
-        if(!user) return json({error:"Invalid"},401);
+      // ---------- LOGIN ----------
+      if (url.pathname === "/login" && request.method === "POST") {
+        const { username, password } = await request.json();
 
-        const h=await hash(password);
-        if(h!==user.password_hash) return json({error:"Invalid"},401);
+        const user = await env.DB.prepare(
+          "SELECT * FROM users WHERE username=? AND password_hash=?"
+        ).bind(username, password).first();
 
-        const token=crypto.randomUUID();
-        await env.DB.prepare("INSERT INTO sessions VALUES (?,?,datetime('now'))")
-          .bind(token,user.id).run();
+        if (!user) return json({ error: "Invalid login" }, 401);
 
-        return new Response(JSON.stringify({success:true}),{
-          headers:{
-            "Content-Type":"application/json",
-            "Set-Cookie":`session=${token}; HttpOnly; Path=/`
+        const token = crypto.randomUUID();
+
+        await env.DB.prepare(
+          "INSERT INTO sessions (token, user_id) VALUES (?, ?)"
+        ).bind(token, user.id).run();
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: {
+            "Set-Cookie": `session=${token}; Path=/; HttpOnly`
           }
         });
       }
 
-      // LOGOUT
-      if(url.pathname==="/logout"){
-        const t=getCookie(request,"session");
-        if(t) await env.DB.prepare("DELETE FROM sessions WHERE token=?").bind(t).run();
-        return json({success:true});
+      // ---------- LOGOUT ----------
+      if (url.pathname === "/logout") {
+        return new Response(JSON.stringify({ success: true }), {
+          headers: {
+            "Set-Cookie": `session=; Path=/; Max-Age=0`
+          }
+        });
       }
 
-      // CUSTOMERS
-      if(url.pathname==="/customers"){
-        const uid=await getUser(request);
-        if(!uid) return json({error:"Unauthorized"},401);
+      // ---------- CUSTOMERS ----------
+      if (url.pathname === "/customers") {
+        const uid = await getUser(request);
+        if (!uid) return json({ error: "Unauthorized" }, 401);
 
-        const {results}=await env.DB.prepare("SELECT * FROM customers WHERE user_id=?").bind(uid).all();
+        const { results } = await env.DB.prepare(
+          "SELECT * FROM customers WHERE user_id=?"
+        ).bind(uid).all();
+
         return json(results);
       }
 
-      if(url.pathname==="/customer" && request.method==="POST"){
-        const uid=await getUser(request);
-        if(!uid) return json({error:"Unauthorized"},401);
+      if (url.pathname === "/customer" && request.method === "POST") {
+        const uid = await getUser(request);
+        if (!uid) return json({ error: "Unauthorized" }, 401);
 
-        const {name}=await request.json();
-        const r=await env.DB.prepare("INSERT INTO customers (name,user_id) VALUES (?,?)")
-          .bind(name,uid).run();
+        const { name } = await request.json();
 
-        return json({id:r.meta.last_row_id});
+        const res = await env.DB.prepare(
+          "INSERT INTO customers (name, user_id) VALUES (?, ?)"
+        ).bind(name, uid).run();
+
+        return json({ id: res.meta.last_row_id });
       }
 
-      // SAVE
-      if(url.pathname==="/save" && request.method==="POST"){
-        const uid=await getUser(request);
-        if(!uid) return json({error:"Unauthorized"},401);
+      // ---------- SAVE ----------
+      if (url.pathname === "/save" && request.method === "POST") {
+        const uid = await getUser(request);
+        if (!uid) return json({ error: "Unauthorized" }, 401);
 
-        const {month,rows}=await request.json();
+        const { month, rows } = await request.json();
 
-        await env.DB.prepare("DELETE FROM entries WHERE month=?").bind(month).run();
+        await env.DB.prepare("DELETE FROM entries WHERE month=?")
+          .bind(month).run();
 
-        const stmt=env.DB.prepare("INSERT INTO entries (customer_id,month,qty,rate,days) VALUES (?,?,?,?,?)");
+        const stmt = env.DB.prepare(`
+          INSERT INTO entries (customer_id, month, qty, rate, days)
+          VALUES (?, ?, ?, ?, ?)
+        `);
 
-        const batch=rows.map(r=>stmt.bind(r.customer_id,month,r.qty,r.rate,JSON.stringify(r.days)));
+        const batch = rows.map(r =>
+          stmt.bind(r.customer_id, month, r.qty, r.rate, JSON.stringify(r.days))
+        );
 
         await env.DB.batch(batch);
 
-        return json({success:true});
+        return json({ success: true });
       }
 
-      // ANALYTICS
-      if(url.pathname==="/analytics"){
-        const uid=await getUser(request);
-        if(!uid) return json({error:"Unauthorized"},401);
+      // ---------- ANALYTICS ----------
+      if (url.pathname === "/analytics") {
+        const uid = await getUser(request);
+        if (!uid) return json({ error: "Unauthorized" }, 401);
 
-        const {results}=await env.DB.prepare(`
-          SELECT month,
-          SUM(qty*rate) revenue
+        const { results } = await env.DB.prepare(`
+          SELECT month, SUM(qty * rate) revenue
           FROM entries
           GROUP BY month
         `).all();
@@ -109,10 +122,11 @@ export default {
         return json(results);
       }
 
+      // ---------- UI ----------
       return env.ASSETS.fetch(request);
 
-    } catch(e){
-      return json({error:e.message},500);
+    } catch (err) {
+      return json({ error: err.toString() }, 500);
     }
   }
 };
