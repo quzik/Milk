@@ -13,7 +13,7 @@ export default {
       const match = (req.headers.get("Cookie") || "").match(
         new RegExp(`${name}=([^;]+)`)
       );
-      return match ? match[1] : null;
+      return match ? match : null;
     };
 
     const getUser = async (req) => {
@@ -149,8 +149,7 @@ export default {
         const month = url.searchParams.get("month");
 
         const { results } = await env.DB.prepare(
-          `SELECT e.* 
-           FROM entries e 
+          `SELECT e.* FROM entries e 
            JOIN customers c ON e.customer_id = c.id 
            WHERE e.month=? AND c.user_id=?`
         )
