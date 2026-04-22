@@ -44,10 +44,16 @@ export default {
         const res = await env.DB.prepare("INSERT INTO customers (name, default_rate, user_id) VALUES (?, ?, ?)").bind(name, rate || 50, uid).run();
         return json({ id: res.meta.last_row_id });
       }
+      // NEW: Edit Customer
+      if (url.pathname === "/customer" && request.method === "PUT") {
+        const { id, name, rate } = await request.json();
+        await env.DB.prepare("UPDATE customers SET name=?, default_rate=? WHERE id=? AND user_id=?").bind(name, rate, id, uid).run();
+        return json({ success: true });
+      }
       if (url.pathname === "/customer" && request.method === "DELETE") {
         const { id } = await request.json();
         await env.DB.prepare("DELETE FROM customers WHERE id=? AND user_id=?").bind(id, uid).run();
-        await env.DB.prepare("DELETE FROM entries WHERE customer_id=?").bind(id).run(); // Delete their history too
+        await env.DB.prepare("DELETE FROM entries WHERE customer_id=?").bind(id).run(); 
         return json({ success: true });
       }
 
@@ -65,11 +71,6 @@ export default {
         const batch = rows.map(r => stmt.bind(r.customer_id, month, r.qty, r.rate, JSON.stringify(r.days), r.old_balance, r.received));
         await env.DB.batch(batch);
         return json({ success: true });
-      }
-
-      if (url.pathname === "/analytics") {
-        const { results } = await env.DB.prepare(`SELECT e.month, SUM(e.qty * e.rate) as revenue FROM entries e JOIN customers c ON e.customer_id = c.id WHERE c.user_id=? GROUP BY e.month`).bind(uid).all();
-        return json(results);
       }
 
       return env.ASSETS.fetch(request);
