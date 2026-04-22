@@ -1,107 +1,26 @@
-<!DOCTYPE html>
-<html lang="ta">
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Milk Management</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-body { margin:0; font-family:sans-serif; background:#eef2f3; }
-header { background:#2c3e50; color:white; padding:15px; text-align:center; }
-.container { padding:10px; }
-.card { background:white; padding:12px; margin-bottom:10px; border-radius:10px; }
-input, select { width:100%; padding:8px; margin:5px 0; border:1px solid #ccc; border-radius:5px; }
-button { width:100%; padding:10px; border:none; border-radius:5px; background:#27ae60; color:white; }
-button:hover { background:#2ecc71; }
-.error { color:red; font-size:13px; }
-.success { color:green; font-size:13px; }
-table { width:100%; border-collapse:collapse; font-size:12px; }
-th, td { border:1px solid #ccc; padding:5px; text-align:center; }
-th { background:#34495e; color:white; }
-#app { display:none; }
-</style>
-</head>
-
-<body>
-
-<header>🥛 Milk Management</header>
-
-<div class="container">
-
-<!-- LOGIN -->
-<div class="card" id="login">
-<h3>Login</h3>
-<input id="user" placeholder="Username">
-<input id="pass" type="password" placeholder="Password">
-<button onclick="login()">Login</button>
-<div id="msg"></div>
-</div>
-
-<!-- APP -->
-<div id="app">
-
-<div class="card">
-<span id="welcome"></span>
-<button onclick="logout()" style="background:#e74c3c;margin-top:5px;">Logout</button>
-</div>
-
-<div class="card">
-<h3>Add Customer</h3>
-<input id="cname" placeholder="Customer name">
-<button onclick="addCustomer()">Add</button>
-<div id="cmsg"></div>
-</div>
-
-<div class="card">
-<h3>Month</h3>
-<select id="month"></select>
-<button onclick="loadEntries()">Load</button>
-<button onclick="save()">Save</button>
-<div id="smsg"></div>
-</div>
-
-<div class="card">
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Qty</th>
-<th>Rate</th>
-<th>Total</th>
-</tr>
-</thead>
-<tbody id="tbody"></tbody>
-</table>
-</div>
-
-<div class="card">
-<h3>Analytics</h3>
-<canvas id="chart"></canvas>
-</div>
-
-</div>
-
-</div>
-
-<script>
 let customers = [], chart;
 
 // Month dropdown
 const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const monthEl = document.getElementById("month");
 months.forEach((m,i)=>{
   let o=document.createElement("option");
   o.value=i+1;
   o.text=m;
-  month.appendChild(o);
+  monthEl.appendChild(o);
 });
-month.value = new Date().getMonth()+1;
+monthEl.value = new Date().getMonth()+1;
 
 // ---------- LOGIN ----------
-async function login(){
+async function login() {
+  const userBtn = document.getElementById("user");
+  const passBtn = document.getElementById("pass");
+  const msg = document.getElementById("msg");
+
   const res = await fetch("/login",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({username:user.value,password:pass.value})
+    body:JSON.stringify({username:userBtn.value, password:passBtn.value})
   });
 
   const d = await res.json();
@@ -110,99 +29,91 @@ async function login(){
     msg.innerText=d.error;
     return;
   }
-
-  login.style.display="none";
-  app.style.display="block";
-  welcome.innerText="Welcome "+user.value;
-
-  loadCustomers();
-  loadChart();
+  
+  // Refresh page on success to trigger the (async()) check below
+  location.reload(); 
 }
 
 // ---------- LOGOUT ----------
 async function logout(){
-  await fetch("/logout",{method:"POST"});
+  await fetch("/logout"); // Method defaults to GET in your worker for /logout
   location.reload();
 }
 
 // ---------- CUSTOMERS ----------
 async function addCustomer(){
+  const cname = document.getElementById("cname");
   const res = await fetch("/customer",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({name:cname.value})
   });
 
-  const d = await res.json();
-  if(!res.ok){
-    cmsg.className="error";
-    cmsg.innerText=d.error;
-    return;
+  if(res.ok){
+    cname.value="";
+    loadCustomers();
   }
-
-  cname.value="";
-  loadCustomers();
 }
 
-// Load customers
 async function loadCustomers(){
   const res = await fetch("/customers");
-  customers = await res.json();
-  render();
+  if(res.ok) {
+    customers = await res.json();
+    render();
+  }
 }
 
 // ---------- TABLE ----------
 function render(){
+  const tbody = document.getElementById("tbody");
   tbody.innerHTML = customers.map(c=>`
   <tr data-id="${c.id}">
     <td>${c.name}</td>
-    <td><input type="number" class="qty" value="1"></td>
-    <td><input type="number" class="rate" value="50"></td>
-    <td class="total">50</td>
+    <td><input type="number" class="qty" value="1" oninput="calc()"></td>
+    <td><input type="number" class="rate" value="50" oninput="calc()"></td>
+    <td class="total">50.00</td>
   </tr>`).join("");
-
-  document.querySelectorAll(".qty,.rate").forEach(e=>e.oninput=calc);
   calc();
 }
 
 function calc(){
   document.querySelectorAll("#tbody tr").forEach(tr=>{
-    let q=tr.querySelector(".qty").value;
-    let r=tr.querySelector(".rate").value;
-    tr.querySelector(".total").innerText=(q*r).toFixed(2);
+    let q = parseFloat(tr.querySelector(".qty").value) || 0;
+    let r = parseFloat(tr.querySelector(".rate").value) || 0;
+    tr.querySelector(".total").innerText = (q * r).toFixed(2);
   });
 }
 
 // ---------- SAVE ----------
 async function save(){
-  let rows=[...document.querySelectorAll("#tbody tr")].map(tr=>({
-    customer_id:tr.dataset.id,
-    qty:tr.querySelector(".qty").value,
-    rate:tr.querySelector(".rate").value,
-    days:[true]
+  const smsg = document.getElementById("smsg");
+  let rows = [...document.querySelectorAll("#tbody tr")].map(tr=>({
+    customer_id: tr.dataset.id,
+    qty: tr.querySelector(".qty").value,
+    rate: tr.querySelector(".rate").value,
+    days: [true]
   }));
 
   await fetch("/save",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({month:month.value,rows})
+    body:JSON.stringify({month: monthEl.value, rows})
   });
 
-  smsg.className="success";
-  smsg.innerText="Saved!";
+  smsg.innerText = "Saved!";
   loadChart();
 }
 
-// ---------- LOAD ----------
+// ---------- LOAD ENTRIES ----------
 async function loadEntries(){
-  const res = await fetch("/load?month="+month.value);
+  const res = await fetch("/load?month=" + monthEl.value);
   const data = await res.json();
 
   document.querySelectorAll("#tbody tr").forEach(tr=>{
-    const e = data.find(x=>x.customer_id==tr.dataset.id);
+    const e = data.find(x => x.customer_id == tr.dataset.id);
     if(e){
-      tr.querySelector(".qty").value=e.qty;
-      tr.querySelector(".rate").value=e.rate;
+      tr.querySelector(".qty").value = e.qty;
+      tr.querySelector(".rate").value = e.rate;
     }
   });
   calc();
@@ -212,30 +123,28 @@ async function loadEntries(){
 async function loadChart(){
   const res = await fetch("/analytics");
   const d = await res.json();
+  const ctx = document.getElementById("chartCanvas").getContext("2d");
 
   if(chart) chart.destroy();
 
-  chart=new Chart(chartCanvas,{
-    type:"bar",
-    data:{
-      labels:d.map(x=>months[x.month-1]),
-      datasets:[{label:"Revenue",data:d.map(x=>x.revenue)}]
+  chart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: d.map(x => months[parseInt(x.month) - 1]),
+      datasets: [{label: "Revenue", data: d.map(x => x.revenue), backgroundColor: '#27ae60'}]
     }
   });
 }
 
-// Auto login check
+// ---------- AUTO INIT ----------
 (async ()=>{
   const res = await fetch("/customers");
   if(res.ok){
-    login.style.display="none";
-    app.style.display="block";
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
     customers = await res.json();
     render();
     loadChart();
   }
 })();
 </script>
-
-</body>
-</html>
