@@ -8,7 +8,7 @@ export default {
         headers: { "Content-Type": "application/json" },
       });
 
-    // ---------- COOKIE ----------
+    // ---------- AUTH UTILITIES ----------
     const getCookie = (req, name) => {
       const match = (req.headers.get("Cookie") || "").match(
         new RegExp(`${name}=([^;]+)`)
@@ -20,13 +20,16 @@ export default {
       const token = getCookie(req, "session");
       if (!token) return null;
 
-      const s = await env.DB.prepare(
-        "SELECT user_id FROM sessions WHERE token=?"
-      )
-        .bind(token)
-        .first();
-
-      return s?.user_id || null;
+      try {
+        const s = await env.DB.prepare(
+          "SELECT user_id FROM sessions WHERE token=?"
+        )
+          .bind(token)
+          .first();
+        return s?.user_id || null;
+      } catch (e) {
+        return null;
+      }
     };
 
     try {
@@ -44,15 +47,18 @@ export default {
 
         const token = crypto.randomUUID();
 
+        // Save session to DB
         await env.DB.prepare(
           "INSERT INTO sessions (token, user_id) VALUES (?, ?)"
         )
           .bind(token, user.id)
           .run();
 
+        // FIX: Removed 'Secure' and set 'SameSite=Lax' to prevent login loops
         return new Response(JSON.stringify({ success: true }), {
           headers: {
-            "Set-Cookie": `session=${token}; Path=/; HttpOnly; Secure; SameSite=Strict`,
+            "Content-Type": "application/json",
+            "Set-Cookie": `session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`,
           },
         });
       }
@@ -61,8 +67,7 @@ export default {
       if (url.pathname === "/logout") {
         return new Response(JSON.stringify({ success: true }), {
           headers: {
-            "Set-Cookie":
-              "session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict",
+            "Set-Cookie": "session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
           },
         });
       }
@@ -70,34 +75,25 @@ export default {
       // ================= AUTH CHECK =================
       const uid = await getUser(request);
 
-      if (!uid && url.pathname !== "/" && url.pathname !== "/login") {
-        if (
-          url.pathname.startsWith("/customer") ||
-          url.pathname === "/save" ||
-          url.pathname === "/load" ||
-          url.pathname === "/analytics"
-        ) {
-          return json({ error: "Unauthorized" }, 401);
-        }
+      // List of protected API routes
+      const protectedPaths = ["/customers", "/customer", "/save", "/load", "/analytics"];
+      
+      if (!uid && protectedPaths.some(p => url.pathname.startsWith(p))) {
+        return json({ error: "Unauthorized" }, 401);
       }
 
       // ================= CUSTOMERS =================
-
-      // GET
-      if (url.pathname === "/customers") {
+      if (url.pathname === "/customers" && request.method === "GET") {
         const { results } = await env.DB.prepare(
           "SELECT * FROM customers WHERE user_id=?"
         )
           .bind(uid)
           .all();
-
         return json(results);
       }
 
-      // ADD
       if (url.pathname === "/customer" && request.method === "POST") {
         const { name, rate } = await request.json();
-
         if (!name) return json({ error: "Name required" }, 400);
 
         const res = await env.DB.prepare(
@@ -106,48 +102,19 @@ export default {
           .bind(name, rate || 50, uid)
           .run();
 
-        return json({
-          success: true,
-          id: res.meta.last_row_id,
-        });
+        return json({ success: true, id: res.meta.last_row_id });
       }
 
-      // DELETE
       if (url.pathname === "/customer" && request.method === "DELETE") {
         const { id } = await request.json();
-
-        await env.DB.prepare(
-          "DELETE FROM customers WHERE id=? AND user_id=?"
-        )
-          .bind(id, uid)
-          .run();
-
-        await env.DB.prepare(
-          "DELETE FROM entries WHERE customer_id=?"
-        )
-          .bind(id)
-          .run();
-
-        return json({ success: true });
-      }
-
-      // UPDATE (EDIT NAME + RATE)
-      if (url.pathname === "/customer" && request.method === "PUT") {
-        const { id, name, rate } = await request.json();
-
-        await env.DB.prepare(
-          "UPDATE customers SET name=?, default_rate=? WHERE id=? AND user_id=?"
-        )
-          .bind(name, rate || 50, id, uid)
-          .run();
-
+        await env.DB.prepare("DELETE FROM customers WHERE id=? AND user_id=?").bind(id, uid).run();
+        await env.DB.prepare("DELETE FROM entries WHERE customer_id=?").bind(id).run();
         return json({ success: true });
       }
 
       // ================= LOAD ENTRIES =================
       if (url.pathname === "/load") {
         const month = url.searchParams.get("month");
-
         const { results } = await env.DB.prepare(
           `SELECT e.* FROM entries e 
            JOIN customers c ON e.customer_id = c.id 
@@ -155,7 +122,6 @@ export default {
         )
           .bind(month, uid)
           .all();
-
         return json(results);
       }
 
@@ -163,7 +129,7 @@ export default {
       if (url.pathname === "/save" && request.method === "POST") {
         const { month, rows } = await request.json();
 
-        // delete old
+        // 1. Delete existing for this month/user
         await env.DB.prepare(
           `DELETE FROM entries 
            WHERE month=? 
@@ -172,46 +138,22 @@ export default {
           .bind(month, uid)
           .run();
 
-        // insert new
-        const stmt = env.DB.prepare(
-          `INSERT INTO entries 
-           (customer_id, month, qty, rate, days, old_balance, received) 
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
-        );
-
-        const batch = rows.map((r) =>
-          stmt.bind(
-            r.customer_id,
-            month,
-            r.qty || 0,
-            r.rate || 50,
-            JSON.stringify(r.days || []),
-            r.old_balance || 0,
-            r.received || 0
-          )
-        );
-
-        await env.DB.batch(batch);
+        // 2. Insert new rows
+        if (rows.length > 0) {
+          const stmt = env.DB.prepare(
+            `INSERT INTO entries (customer_id, month, rate, days) VALUES (?, ?, ?, ?)`
+          );
+          const batch = rows.map(r => 
+            stmt.bind(r.customer_id, month, r.rate, JSON.stringify(r.days))
+          );
+          await env.DB.batch(batch);
+        }
 
         return json({ success: true });
       }
 
-      // ================= ANALYTICS =================
-      if (url.pathname === "/analytics") {
-        const { results } = await env.DB.prepare(
-          `SELECT e.month, SUM(e.qty * e.rate) as revenue
-           FROM entries e
-           JOIN customers c ON e.customer_id = c.id
-           WHERE c.user_id=?
-           GROUP BY e.month`
-        )
-          .bind(uid)
-          .all();
-
-        return json(results);
-      }
-
-      // ================= STATIC =================
+      // ================= STATIC ASSETS =================
+      // This serves your index.html
       return env.ASSETS.fetch(request);
 
     } catch (err) {
