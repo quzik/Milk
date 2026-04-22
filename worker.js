@@ -26,13 +26,13 @@ export default {
     };
 
     try {
-
       // ---------- LOGIN ----------
       if (url.pathname === "/login" && request.method === "POST") {
         const { username, password } = await request.json();
 
+        // CHANGED: password_hash -> password to match your D1 table
         const user = await env.DB.prepare(
-          "SELECT * FROM users WHERE username=? AND password_hash=?"
+          "SELECT * FROM users WHERE username=? AND password=?"
         ).bind(username, password).first();
 
         if (!user) return json({ error: "Invalid login" }, 401);
@@ -45,7 +45,7 @@ export default {
 
         return new Response(JSON.stringify({ success: true }), {
           headers: {
-            "Set-Cookie": `session=${token}; Path=/; HttpOnly`
+            "Set-Cookie": `session=${token}; Path=/; HttpOnly; Secure; SameSite=Strict`
           }
         });
       }
@@ -54,45 +54,46 @@ export default {
       if (url.pathname === "/logout") {
         return new Response(JSON.stringify({ success: true }), {
           headers: {
-            "Set-Cookie": `session=; Path=/; Max-Age=0`
+            "Set-Cookie": `session=; Path=/; Max-Age=0; HttpOnly`
           }
         });
       }
 
+      // Authentication Guard for all other routes
+      const uid = await getUser(request);
+      if (!uid && url.pathname !== "/") {
+         // Allow the root UI to load even if not logged in, 
+         // but protect API routes
+         if (url.pathname.startsWith("/customer") || url.pathname === "/save" || url.pathname === "/analytics") {
+           return json({ error: "Unauthorized" }, 401);
+         }
+      }
+
       // ---------- CUSTOMERS ----------
       if (url.pathname === "/customers") {
-        const uid = await getUser(request);
-        if (!uid) return json({ error: "Unauthorized" }, 401);
-
         const { results } = await env.DB.prepare(
           "SELECT * FROM customers WHERE user_id=?"
         ).bind(uid).all();
-
         return json(results);
       }
 
       if (url.pathname === "/customer" && request.method === "POST") {
-        const uid = await getUser(request);
-        if (!uid) return json({ error: "Unauthorized" }, 401);
-
         const { name } = await request.json();
-
         const res = await env.DB.prepare(
           "INSERT INTO customers (name, user_id) VALUES (?, ?)"
         ).bind(name, uid).run();
-
         return json({ id: res.meta.last_row_id });
       }
 
       // ---------- SAVE ----------
       if (url.pathname === "/save" && request.method === "POST") {
-        const uid = await getUser(request);
-        if (!uid) return json({ error: "Unauthorized" }, 401);
-
         const { month, rows } = await request.json();
 
-        await env.DB.prepare("DELETE FROM entries WHERE month=?")
-          .bind(month).run();
+        // Secure Delete: only delete entries for customers belonging to this user
+        await env.DB.prepare(`
+          DELETE FROM entries 
+          WHERE month=? AND customer_id IN (SELECT id FROM customers WHERE user_id=?)
+        `).bind(month, uid).run();
 
         const stmt = env.DB.prepare(`
           INSERT INTO entries (customer_id, month, qty, rate, days)
@@ -104,20 +105,18 @@ export default {
         );
 
         await env.DB.batch(batch);
-
         return json({ success: true });
       }
 
       // ---------- ANALYTICS ----------
       if (url.pathname === "/analytics") {
-        const uid = await getUser(request);
-        if (!uid) return json({ error: "Unauthorized" }, 401);
-
         const { results } = await env.DB.prepare(`
-          SELECT month, SUM(qty * rate) revenue
-          FROM entries
-          GROUP BY month
-        `).all();
+          SELECT e.month, SUM(e.qty * e.rate) revenue
+          FROM entries e
+          JOIN customers c ON e.customer_id = c.id
+          WHERE c.user_id = ?
+          GROUP BY e.month
+        `).bind(uid).all();
 
         return json(results);
       }
