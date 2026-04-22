@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Milk Management Pro</title>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -14,14 +13,11 @@
         --primary: #4f46e5;
         --primary-hover: #4338ca;
         --success: #10b981;
-        --success-hover: #059669;
         --danger: #ef4444;
-        --danger-hover: #dc2626;
-        --bg: #f3f4f6;
+        --bg: #f8fafc;
         --card: #ffffff;
-        --text: #1f2937;
-        --text-light: #6b7280;
-        --border: #e5e7eb;
+        --border: #e2e8f0;
+        --text: #0f172a;
     }
 
     body {
@@ -30,383 +26,310 @@
         background: var(--bg);
         color: var(--text);
         opacity: 0;
-        transition: opacity 0.4s ease;
+        transition: opacity 0.5s;
     }
 
     header {
-        background: var(--card);
-        color: var(--primary);
-        padding: 20px;
-        text-align: center;
-        font-weight: 700;
-        font-size: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        background: white;
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         border-bottom: 1px solid var(--border);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
 
-    .container {
-        max-width: 1300px;
-        margin: 20px auto;
-        padding: 0 15px;
+    .container { max-width: 1400px; margin: 2rem auto; padding: 0 1rem; }
+
+    /* Login Box */
+    #loginBox {
+        max-width: 400px;
+        margin: 10vh auto;
+        padding: 2.5rem;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+        text-align: center;
     }
 
+    /* Cards & Layout */
     .card {
-        background: var(--card);
-        padding: 20px;
-        margin-bottom: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        background: white;
+        padding: 1.5rem;
+        border-radius: 0.75rem;
         border: 1px solid var(--border);
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
-    .flex { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
-    .flex-between { justify-content: space-between; }
+    .flex { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
     
+    /* Form Elements */
     input, select {
-        padding: 10px 14px;
+        padding: 0.6rem 0.8rem;
         border: 1px solid var(--border);
-        border-radius: 8px;
-        font-family: 'Inter', sans-serif;
+        border-radius: 0.5rem;
         outline: none;
-        transition: border-color 0.2s;
+        font-family: inherit;
     }
 
-    input:focus, select:focus {
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-    }
+    input:focus { border-color: var(--primary); ring: 2px var(--primary); }
 
     button {
-        padding: 10px 18px;
+        padding: 0.6rem 1.2rem;
         border: none;
-        border-radius: 8px;
+        border-radius: 0.5rem;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.2s;
-        font-family: 'Inter', sans-serif;
+        transition: 0.2s;
     }
 
-    button:active { transform: scale(0.96); }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-primary:hover { background: var(--primary-hover); }
-    .btn-success { background: var(--success); color: white; }
-    .btn-success:hover { background: var(--success-hover); }
-    .btn-danger { background: var(--danger); color: white; padding: 6px 12px; font-size: 0.85rem;}
-    .btn-danger:hover { background: var(--danger-hover); }
+    .btn-green { background: var(--success); color: white; }
+    .btn-blue { background: var(--primary); color: white; }
+    .btn-red { background: var(--danger); color: white; padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+    button:hover { opacity: 0.9; transform: translateY(-1px); }
 
-    .table-container {
-        overflow-x: auto;
-        max-height: 65vh;
-        border-radius: 8px;
+    /* Table Styling */
+    .table-wrapper {
+        overflow: auto;
+        max-height: 70vh;
+        border-radius: 0.5rem;
         border: 1px solid var(--border);
     }
 
-    table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        min-width: 1200px;
-    }
-
-    th, td {
-        border-bottom: 1px solid var(--border);
-        border-right: 1px solid var(--border);
-        padding: 8px 10px;
-        text-align: center;
-        white-space: nowrap;
-        background: var(--card);
-    }
-
+    table { width: 100%; border-collapse: collapse; min-width: 1200px; background: white; }
+    th, td { padding: 0.75rem; border: 1px solid var(--border); text-align: center; }
+    
     th {
-        background: var(--primary);
-        color: white;
-        font-weight: 600;
+        background: #f1f5f9;
         position: sticky;
         top: 0;
         z-index: 10;
-        border-right: 1px solid rgba(255,255,255,0.2);
+        font-weight: 600;
+        font-size: 0.85rem;
     }
 
-    .sticky-col {
+    .sticky-name {
         position: sticky;
         left: 0;
-        z-index: 5;
+        background: white;
         font-weight: 600;
-        box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        z-index: 5;
+        border-right: 2px solid var(--border);
     }
+
+    .cell-input { width: 40px; border: none; text-align: center; background: transparent; font-size: 0.9rem; }
+    .cell-input:focus { background: #fefce8; outline: 1px solid var(--primary); }
     
-    th.sticky-col { z-index: 15; background: var(--primary-hover); }
-
-    input[type="number"]::-webkit-inner-spin-button, 
-    input[type="number"]::-webkit-outer-spin-button { 
-        -webkit-appearance: none; margin: 0; 
-    }
-
-    .cell-input { width: 45px; text-align: center; padding: 6px; }
-    .rate-input { width: 60px; text-align: center; font-weight: 600; color: var(--primary); }
-    .font-bold { font-weight: bold; }
-
+    .row-total { font-weight: 700; color: var(--primary); }
     #app { display: none; }
-    #loginBox { max-width: 400px; margin: 10vh auto; text-align: center; }
-    #loginBox input { width: 100%; box-sizing: border-box; margin-bottom: 15px; }
-
-    /* Toast Notification */
-    #toast {
-        visibility: hidden; min-width: 250px; background-color: var(--success); color: #fff;
-        text-align: center; border-radius: 8px; padding: 12px; position: fixed; z-index: 1000;
-        left: 50%; bottom: 30px; transform: translateX(-50%); font-weight: 600;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
-    @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
-    @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
 </style>
 </head>
 
 <body>
-<header>🥛 Milk Management Pro</header>
+
+<header>
+    <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">🥛 MilkPro</div>
+    <button id="logoutBtn" style="display:none; background: #f1f5f9; color: #64748b;" onclick="logout()">Logout</button>
+</header>
 
 <div class="container">
 
-    <div class="card" id="loginBox">
-        <h2 style="margin-top: 0; color: var(--text);">Welcome Back</h2>
-        <input id="user" placeholder="Username">
-        <input id="pass" type="password" placeholder="Password">
-        <button class="btn-primary" style="width: 100%;" onclick="login()">Login</button>
-        <p id="msg" style="color: var(--danger); margin-top: 15px; font-weight: 500;"></p>
+    <div id="loginBox">
+        <h2 style="margin-top:0">Sign In</h2>
+        <p style="color: #64748b; margin-bottom: 2rem;">Access your milk management dashboard</p>
+        <input id="user" placeholder="Username" style="width:100%; margin-bottom:1rem; box-sizing:border-box">
+        <input id="pass" type="password" placeholder="Password" style="width:100%; margin-bottom:1.5rem; box-sizing:border-box">
+        <button class="btn-blue" style="width:100%" onclick="login()">Login</button>
+        <p id="msg" style="color:var(--danger); margin-top:1rem; font-weight:500"></p>
     </div>
 
     <div id="app">
-        <div class="flex flex-between">
-            <div class="flex card" style="margin-bottom: 0; flex: 1;">
-                <input id="cname" placeholder="Customer Name">
-                <input id="crate" type="number" placeholder="Rate (e.g. 50)" value="50">
-                <button class="btn-success" onclick="addCustomer()">+ Add Customer</button>
+        <div class="card flex" style="justify-content: space-between;">
+            <div class="flex">
+                <input id="cname" placeholder="New Customer Name">
+                <input id="crate" type="number" placeholder="Rate" style="width:80px" value="50">
+                <button class="btn-green" onclick="addCustomer()">+ Add Customer</button>
             </div>
-            
-            <div class="flex card" style="margin-bottom: 0;">
-                <input id="search" placeholder="🔍 Search customers..." oninput="filter()">
+            <div class="flex">
+                <input id="search" placeholder="🔍 Search..." oninput="filter()">
                 <select id="month" onchange="load()"></select>
-                <button class="btn-primary" id="saveBtn" onclick="save()">💾 Save Entries</button>
-                <button class="btn-success" onclick="exportExcel()">📊 Export Excel</button>
+                <button class="btn-blue" onclick="save()">💾 Save Changes</button>
+                <button class="btn-green" onclick="exportExcel()">📊 Export</button>
             </div>
         </div>
 
-        <div class="card table-container" style="margin-top: 20px;">
-            <table id="dataTable">
+        <div class="card table-wrapper">
+            <table>
                 <thead id="thead"></thead>
                 <tbody id="tbody"></tbody>
             </table>
         </div>
     </div>
-
 </div>
-
-<div id="toast">Data saved successfully!</div>
 
 <script>
 let customers = [];
 const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-// Init Month Dropdown
+// Initial Setup
 const mSelect = document.getElementById("month");
-months.forEach((x, i) => mSelect.add(new Option(x, i + 1)));
+months.forEach((m, i) => mSelect.add(new Option(m, i + 1)));
 mSelect.value = new Date().getMonth() + 1;
 
-function showToast(message) {
-    const toast = document.getElementById("toast");
-    toast.innerText = message;
-    toast.className = "show";
-    setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
-}
-
-// LOGIN
+// --- AUTH LOGIC ---
 async function login() {
-    const user = document.getElementById("user").value;
-    const pass = document.getElementById("pass").value;
+    const username = document.getElementById("user").value;
+    const password = document.getElementById("pass").value;
     const msg = document.getElementById("msg");
 
-    let r = await fetch("/login", {
-        method: "POST", 
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: user, password: pass })
+    const r = await fetch("/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ username, password })
     });
 
-    if (r.ok) location.reload(); 
-    else msg.innerText = "Invalid credentials. Please try again.";
-}
-
-// LOAD CUSTOMERS
-async function loadCustomers() {
-    let r = await fetch("/customers");
-    if(r.ok) {
-        customers = await r.json();
-        load();
-    }
-}
-
-// ADD CUSTOMER
-async function addCustomer() {
-    const nameInput = document.getElementById("cname");
-    const rateInput = document.getElementById("crate");
-
-    if(!nameInput.value.trim()) {
-        alert("Please enter a customer name.");
-        return;
-    }
-
-    let r = await fetch("/customer", {
-        method: "POST", 
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: nameInput.value, rate: parseFloat(rateInput.value) || 50 })
-    });
-
-    if(r.ok) {
-        nameInput.value = "";
-        loadCustomers();
-        showToast("Customer added!");
+    if (r.ok) {
+        location.reload(); 
     } else {
-        alert("Failed to add customer.");
+        msg.innerText = "Invalid username or password";
     }
 }
 
-// DELETE CUSTOMER
+async function logout() {
+    await fetch("/logout");
+    location.reload();
+}
+
+// --- CUSTOMER LOGIC ---
+async function addCustomer() {
+    const name = document.getElementById("cname").value;
+    const rate = document.getElementById("crate").value;
+    
+    if (!name) return alert("Enter a name");
+
+    const r = await fetch("/customer", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ name, rate })
+    });
+
+    if (r.ok) {
+        document.getElementById("cname").value = "";
+        loadCustomers();
+    }
+}
+
 async function del(id) {
-    if(!confirm("Are you sure you want to delete this customer?")) return;
+    if (!confirm("Delete this customer?")) return;
     await fetch("/customer", {
-        method: "DELETE", 
-        headers: { "Content-Type": "application/json" },
+        method: "DELETE",
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify({ id })
     });
     loadCustomers();
 }
 
-// LOAD MONTH DATA
-async function load() {
-    let r = await fetch("/load?month=" + mSelect.value);
-    if(r.ok) {
-        let data = await r.json();
-        render(data);
+// --- DATA LOAD & RENDER ---
+async function loadCustomers() {
+    const r = await fetch("/customers");
+    if (r.ok) {
+        customers = await r.json();
+        load();
     }
 }
 
-// RENDER TABLE
-function render(data) {
-    const year = new Date().getFullYear(); // Fixed Hardcoded year!
-    const monthVal = parseInt(mSelect.value);
-    const days = new Date(year, monthVal, 0).getDate();
+async function load() {
+    const r = await fetch("/load?month=" + mSelect.value);
+    const data = await r.json();
+    render(data);
+}
 
-    // Table Header
-    let h = `<tr><th>#</th><th class='sticky-col'>Name</th><th>Rate</th>`;
-    for (let i = 1; i <= days; i++) h += `<th>${i}</th>`;
-    h += `<th>Total</th><th>Net Rate</th><th>Action</th></tr>`;
+function render(data) {
+    const month = parseInt(mSelect.value);
+    const year = new Date().getFullYear();
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    // Headers
+    let h = `<tr><th>#</th><th class="sticky-name">Customer Name</th><th>Rate</th>`;
+    for(let i=1; i<=daysInMonth; i++) h += `<th>${i}</th>`;
+    h += `<th>Total Qty</th><th>Amount</th><th>Action</th></tr>`;
     document.getElementById("thead").innerHTML = h;
 
-    // Table Body
-    document.getElementById("tbody").innerHTML = customers.map((c, i) => {
-        let e = data.find(x => x.customer_id == c.id) || {};
-        let arr = e.days ? JSON.parse(e.days) : Array(days).fill("");
+    // Body
+    document.getElementById("tbody").innerHTML = customers.map((c, idx) => {
+        const entry = data.find(x => x.customer_id === c.id) || {};
+        const daysArr = entry.days ? JSON.parse(entry.days) : Array(daysInMonth).fill("");
+        const rate = entry.rate || c.default_rate || 50;
+
+        let rowHtml = `<tr data-id="${c.id}">
+            <td>${idx + 1}</td>
+            <td class="sticky-name">${c.name}</td>
+            <td><input class="cell-input rate-val" type="number" value="${rate}" oninput="calcRow(this)"></td>`;
         
-        // Normalize array length to match month days
-        while(arr.length < days) arr.push("");
-        arr = arr.slice(0, days);
-
-        let rate = e.rate || c.default_rate || 50;
-        let totalQty = arr.reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
-        let netRate = totalQty * rate;
-
-        return `<tr data-id="${c.id}">
-            <td>${i + 1}</td>
-            <td class="sticky-col">${c.name}</td>
-            <td><input class="rate-input" type="number" value="${rate}"></td>
-            ${arr.map(v => `<td><input class="cell-input day-input" type="number" value="${v}"></td>`).join("")}
-            <td class="total-cell font-bold">${totalQty}</td>
-            <td class="net-cell font-bold text-primary">₹${netRate.toFixed(2)}</td>
-            <td><button class="btn-danger" onclick="del(${c.id})">Del</button></td>
-        </tr>`;
-    }).join("");
-}
-
-// LIVE CALCULATIONS ON INPUT
-document.getElementById('tbody').addEventListener('input', (e) => {
-    if (e.target.tagName === 'INPUT') {
-        let tr = e.target.closest('tr');
-        let rate = parseFloat(tr.querySelector('.rate-input').value) || 0;
-        let dayInputs = tr.querySelectorAll('.day-input');
-        
-        let total = 0;
-        dayInputs.forEach(inp => {
-            let val = parseFloat(inp.value);
-            if (!isNaN(val)) total += val;
+        daysArr.slice(0, daysInMonth).forEach(val => {
+            rowHtml += `<td><input class="cell-input day-val" type="number" value="${val}" oninput="calcRow(this)"></td>`;
         });
 
-        tr.querySelector('.total-cell').innerText = total;
-        tr.querySelector('.net-cell').innerText = '₹' + (total * rate).toFixed(2);
-    }
-});
+        rowHtml += `<td class="row-total">0</td>
+                    <td class="row-amt">0</td>
+                    <td><button class="btn-red" onclick="del(${c.id})">X</button></td></tr>`;
+        return rowHtml;
+    }).join("");
 
-// SAVE ENTRIES (Fixed completely)
-async function save() {
-    const btn = document.getElementById("saveBtn");
-    btn.innerText = "Saving...";
+    // Initial calculation for all rows
+    document.querySelectorAll("#tbody tr").forEach(tr => calcRow(tr.querySelector('.cell-input')));
+}
+
+function calcRow(el) {
+    const tr = el.closest('tr');
+    const rate = parseFloat(tr.querySelector('.rate-val').value) || 0;
+    const days = tr.querySelectorAll('.day-val');
+    let total = 0;
+    days.forEach(d => total += (parseFloat(d.value) || 0));
     
-    let rows = [...document.querySelectorAll("#tbody tr")].map(tr => {
+    tr.querySelector('.row-total').innerText = total.toFixed(1);
+    tr.querySelector('.row-amt').innerText = "₹" + (total * rate).toFixed(2);
+}
+
+// --- SAVE & EXPORT ---
+async function save() {
+    const rows = [...document.querySelectorAll("#tbody tr")].map(tr => {
         return {
             customer_id: parseInt(tr.getAttribute("data-id")),
-            rate: parseFloat(tr.querySelector(".rate-input").value) || 0,
-            days: [...tr.querySelectorAll(".day-input")].map(inp => inp.value)
+            rate: parseFloat(tr.querySelector(".rate-val").value) || 0,
+            days: [...tr.querySelectorAll(".day-val")].map(d => d.value)
         };
     });
 
-    let r = await fetch("/save", {
-        method: "POST", 
-        headers: { "Content-Type": "application/json" },
+    const r = await fetch("/save", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify({ month: mSelect.value, rows })
     });
 
-    if(r.ok) {
-        showToast("Entries saved successfully!");
-    } else {
-        alert("Failed to save entries.");
-    }
-    btn.innerText = "💾 Save Entries";
+    if (r.ok) alert("Data saved successfully!");
 }
 
-// FILTER SEARCH
 function filter() {
-    let t = document.getElementById("search").value.toLowerCase();
-    document.querySelectorAll("#tbody tr").forEach(r => {
-        const nameCol = r.querySelector('.sticky-col').innerText.toLowerCase();
-        r.style.display = nameCol.includes(t) ? "" : "none";
+    const q = document.getElementById("search").value.toLowerCase();
+    document.querySelectorAll("#tbody tr").forEach(tr => {
+        tr.style.display = tr.innerText.toLowerCase().includes(q) ? "" : "none";
     });
 }
 
-// EXPORT TO EXCEL
 function exportExcel() {
-    let table = document.getElementById("dataTable");
-    // Clone table to remove the action column before exporting
-    let clone = table.cloneNode(true);
-    clone.querySelectorAll("tr").forEach(row => {
-        if(row.lastElementChild) row.removeChild(row.lastElementChild);
-        
-        // Convert inputs to plain text for excel
-        row.querySelectorAll("input").forEach(inp => {
-            let td = document.createElement("td");
-            td.innerText = inp.value;
-            inp.parentNode.replaceChild(td, inp);
-        });
-    });
-
-    let wb = XLSX.utils.table_to_book(clone);
-    XLSX.writeFile(wb, `Milk_Management_${months[mSelect.value-1]}.xlsx`);
+    const wb = XLSX.utils.table_to_book(document.querySelector("table"));
+    XLSX.writeFile(wb, `Milk_Report_${months[mSelect.value-1]}.xlsx`);
 }
 
-// INIT
+// --- INIT ---
 (async () => {
-    let r = await fetch("/customers");
+    const r = await fetch("/customers");
     if (r.ok) {
         document.getElementById("loginBox").style.display = "none";
         document.getElementById("app").style.display = "block";
+        document.getElementById("logoutBtn").style.display = "block";
         customers = await r.json();
         load();
     }
