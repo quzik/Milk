@@ -1,340 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Milk Management Pro</title>
-
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<style>
-    :root {
-        --primary: #4f46e5;
-        --primary-hover: #4338ca;
-        --success: #10b981;
-        --danger: #ef4444;
-        --bg: #f8fafc;
-        --card: #ffffff;
-        --border: #e2e8f0;
-        --text: #0f172a;
-    }
-
-    body {
-        margin: 0;
-        font-family: 'Inter', sans-serif;
-        background: var(--bg);
-        color: var(--text);
-        opacity: 0;
-        transition: opacity 0.5s;
-    }
-
-    header {
-        background: white;
-        padding: 1rem 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid var(--border);
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-
-    .container { max-width: 1400px; margin: 2rem auto; padding: 0 1rem; }
-
-    /* Login Box */
-    #loginBox {
-        max-width: 400px;
-        margin: 10vh auto;
-        padding: 2.5rem;
-        background: white;
-        border-radius: 1rem;
-        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-        text-align: center;
-    }
-
-    /* Cards & Layout */
-    .card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 0.75rem;
-        border: 1px solid var(--border);
-        margin-bottom: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    .flex { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
-    
-    /* Form Elements */
-    input, select {
-        padding: 0.6rem 0.8rem;
-        border: 1px solid var(--border);
-        border-radius: 0.5rem;
-        outline: none;
-        font-family: inherit;
-    }
-
-    input:focus { border-color: var(--primary); ring: 2px var(--primary); }
-
-    button {
-        padding: 0.6rem 1.2rem;
-        border: none;
-        border-radius: 0.5rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-
-    .btn-green { background: var(--success); color: white; }
-    .btn-blue { background: var(--primary); color: white; }
-    .btn-red { background: var(--danger); color: white; padding: 0.4rem 0.8rem; font-size: 0.8rem; }
-    button:hover { opacity: 0.9; transform: translateY(-1px); }
-
-    /* Table Styling */
-    .table-wrapper {
-        overflow: auto;
-        max-height: 70vh;
-        border-radius: 0.5rem;
-        border: 1px solid var(--border);
-    }
-
-    table { width: 100%; border-collapse: collapse; min-width: 1200px; background: white; }
-    th, td { padding: 0.75rem; border: 1px solid var(--border); text-align: center; }
-    
-    th {
-        background: #f1f5f9;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        font-weight: 600;
-        font-size: 0.85rem;
-    }
-
-    .sticky-name {
-        position: sticky;
-        left: 0;
-        background: white;
-        font-weight: 600;
-        z-index: 5;
-        border-right: 2px solid var(--border);
-    }
-
-    .cell-input { width: 40px; border: none; text-align: center; background: transparent; font-size: 0.9rem; }
-    .cell-input:focus { background: #fefce8; outline: 1px solid var(--primary); }
-    
-    .row-total { font-weight: 700; color: var(--primary); }
-    #app { display: none; }
-</style>
+    <meta charset="UTF-8">
+    <title>Milk Management</title>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        #app { display: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background: #4f46e5; color: white; }
+        input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; }
+        .green { background: #10b981; }
+        .blue { background: #4f46e5; }
+    </style>
 </head>
-
 <body>
 
-<header>
-    <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">🥛 MilkPro</div>
-    <button id="logoutBtn" style="display:none; background: #f1f5f9; color: #64748b;" onclick="logout()">Logout</button>
-</header>
-
-<div class="container">
-
-    <div id="loginBox">
-        <h2 style="margin-top:0">Sign In</h2>
-        <p style="color: #64748b; margin-bottom: 2rem;">Access your milk management dashboard</p>
-        <input id="user" placeholder="Username" style="width:100%; margin-bottom:1rem; box-sizing:border-box">
-        <input id="pass" type="password" placeholder="Password" style="width:100%; margin-bottom:1.5rem; box-sizing:border-box">
-        <button class="btn-blue" style="width:100%" onclick="login()">Login</button>
-        <p id="msg" style="color:var(--danger); margin-top:1rem; font-weight:500"></p>
+    <div id="loginBox" class="card" style="max-width: 300px; margin: 100px auto;">
+        <h2>Login</h2>
+        <input id="u" placeholder="Admin" style="width: 100%; margin-bottom: 10px;"><br>
+        <input id="p" type="password" placeholder="Password" style="width: 100%; margin-bottom: 10px;"><br>
+        <button class="btn blue" onclick="doLogin()" style="width: 100%;">Login</button>
+        <p id="err" style="color: red;"></p>
     </div>
 
     <div id="app">
-        <div class="card flex" style="justify-content: space-between;">
-            <div class="flex">
-                <input id="cname" placeholder="New Customer Name">
-                <input id="crate" type="number" placeholder="Rate" style="width:80px" value="50">
-                <button class="btn-green" onclick="addCustomer()">+ Add Customer</button>
-            </div>
-            <div class="flex">
-                <input id="search" placeholder="🔍 Search..." oninput="filter()">
-                <select id="month" onchange="load()"></select>
-                <button class="btn-blue" onclick="save()">💾 Save Changes</button>
-                <button class="btn-green" onclick="exportExcel()">📊 Export</button>
-            </div>
+        <div class="card">
+            <input id="cn" placeholder="Customer Name">
+            <input id="cr" type="number" value="50" style="width: 60px;">
+            <button class="btn green" onclick="addC()">Add Customer</button>
+            <select id="m" onchange="loadData()" style="margin-left: 20px;"></select>
+            <button class="btn blue" onclick="saveData()">Save All</button>
         </div>
-
-        <div class="card table-wrapper">
+        <div class="card" style="overflow-x: auto;">
             <table>
-                <thead id="thead"></thead>
-                <tbody id="tbody"></tbody>
+                <thead id="th"></thead>
+                <tbody id="tb"></tbody>
             </table>
         </div>
     </div>
-</div>
 
 <script>
-let customers = [];
-const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const mSel = document.getElementById("m");
+    months.forEach((m, i) => mSel.add(new Option(m, i + 1)));
+    mSel.value = new Date().getMonth() + 1;
 
-// Initial Setup
-const mSelect = document.getElementById("month");
-months.forEach((m, i) => mSelect.add(new Option(m, i + 1)));
-mSelect.value = new Date().getMonth() + 1;
+    let customers = [];
 
-// --- AUTH LOGIC ---
-async function login() {
-    const username = document.getElementById("user").value;
-    const password = document.getElementById("pass").value;
-    const msg = document.getElementById("msg");
-
-    const r = await fetch("/login", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ username, password })
-    });
-
-    if (r.ok) {
-        location.reload(); 
-    } else {
-        msg.innerText = "Invalid username or password";
-    }
-}
-
-async function logout() {
-    await fetch("/logout");
-    location.reload();
-}
-
-// --- CUSTOMER LOGIC ---
-async function addCustomer() {
-    const name = document.getElementById("cname").value;
-    const rate = document.getElementById("crate").value;
-    
-    if (!name) return alert("Enter a name");
-
-    const r = await fetch("/customer", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ name, rate })
-    });
-
-    if (r.ok) {
-        document.getElementById("cname").value = "";
-        loadCustomers();
-    }
-}
-
-async function del(id) {
-    if (!confirm("Delete this customer?")) return;
-    await fetch("/customer", {
-        method: "DELETE",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ id })
-    });
-    loadCustomers();
-}
-
-// --- DATA LOAD & RENDER ---
-async function loadCustomers() {
-    const r = await fetch("/customers");
-    if (r.ok) {
-        customers = await r.json();
-        load();
-    }
-}
-
-async function load() {
-    const r = await fetch("/load?month=" + mSelect.value);
-    const data = await r.json();
-    render(data);
-}
-
-function render(data) {
-    const month = parseInt(mSelect.value);
-    const year = new Date().getFullYear();
-    const daysInMonth = new Date(year, month, 0).getDate();
-
-    // Headers
-    let h = `<tr><th>#</th><th class="sticky-name">Customer Name</th><th>Rate</th>`;
-    for(let i=1; i<=daysInMonth; i++) h += `<th>${i}</th>`;
-    h += `<th>Total Qty</th><th>Amount</th><th>Action</th></tr>`;
-    document.getElementById("thead").innerHTML = h;
-
-    // Body
-    document.getElementById("tbody").innerHTML = customers.map((c, idx) => {
-        const entry = data.find(x => x.customer_id === c.id) || {};
-        const daysArr = entry.days ? JSON.parse(entry.days) : Array(daysInMonth).fill("");
-        const rate = entry.rate || c.default_rate || 50;
-
-        let rowHtml = `<tr data-id="${c.id}">
-            <td>${idx + 1}</td>
-            <td class="sticky-name">${c.name}</td>
-            <td><input class="cell-input rate-val" type="number" value="${rate}" oninput="calcRow(this)"></td>`;
-        
-        daysArr.slice(0, daysInMonth).forEach(val => {
-            rowHtml += `<td><input class="cell-input day-val" type="number" value="${val}" oninput="calcRow(this)"></td>`;
+    async function doLogin() {
+        const res = await fetch("/login", {
+            method: "POST",
+            body: JSON.stringify({ username: u.value, password: p.value })
         });
-
-        rowHtml += `<td class="row-total">0</td>
-                    <td class="row-amt">0</td>
-                    <td><button class="btn-red" onclick="del(${c.id})">X</button></td></tr>`;
-        return rowHtml;
-    }).join("");
-
-    // Initial calculation for all rows
-    document.querySelectorAll("#tbody tr").forEach(tr => calcRow(tr.querySelector('.cell-input')));
-}
-
-function calcRow(el) {
-    const tr = el.closest('tr');
-    const rate = parseFloat(tr.querySelector('.rate-val').value) || 0;
-    const days = tr.querySelectorAll('.day-val');
-    let total = 0;
-    days.forEach(d => total += (parseFloat(d.value) || 0));
-    
-    tr.querySelector('.row-total').innerText = total.toFixed(1);
-    tr.querySelector('.row-amt').innerText = "₹" + (total * rate).toFixed(2);
-}
-
-// --- SAVE & EXPORT ---
-async function save() {
-    const rows = [...document.querySelectorAll("#tbody tr")].map(tr => {
-        return {
-            customer_id: parseInt(tr.getAttribute("data-id")),
-            rate: parseFloat(tr.querySelector(".rate-val").value) || 0,
-            days: [...tr.querySelectorAll(".day-val")].map(d => d.value)
-        };
-    });
-
-    const r = await fetch("/save", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ month: mSelect.value, rows })
-    });
-
-    if (r.ok) alert("Data saved successfully!");
-}
-
-function filter() {
-    const q = document.getElementById("search").value.toLowerCase();
-    document.querySelectorAll("#tbody tr").forEach(tr => {
-        tr.style.display = tr.innerText.toLowerCase().includes(q) ? "" : "none";
-    });
-}
-
-function exportExcel() {
-    const wb = XLSX.utils.table_to_book(document.querySelector("table"));
-    XLSX.writeFile(wb, `Milk_Report_${months[mSelect.value-1]}.xlsx`);
-}
-
-// --- INIT ---
-(async () => {
-    const r = await fetch("/customers");
-    if (r.ok) {
-        document.getElementById("loginBox").style.display = "none";
-        document.getElementById("app").style.display = "block";
-        document.getElementById("logoutBtn").style.display = "block";
-        customers = await r.json();
-        load();
+        if (res.ok) {
+            document.getElementById("err").innerText = "Success! Redirecting...";
+            setTimeout(() => location.reload(), 500); // Small delay to help cookies
+        } else {
+            document.getElementById("err").innerText = "Login Failed";
+        }
     }
-    document.body.style.opacity = 1;
-})();
+
+    async function addC() {
+        await fetch("/customer", {
+            method: "POST",
+            body: JSON.stringify({ name: cn.value, rate: cr.value })
+        });
+        cn.value = "";
+        init();
+    }
+
+    async function loadData() {
+        const res = await fetch("/load?month=" + mSel.value);
+        const data = await res.json();
+        render(data);
+    }
+
+    function render(data) {
+        const days = new Date(2026, mSel.value, 0).getDate();
+        th.innerHTML = `<tr><th>Name</th><th>Rate</th>${Array.from({length:days},(_,i)=>`<th>${i+1}</th>`).join('')}<th>Total</th></tr>`;
+        
+        tb.innerHTML = customers.map(c => {
+            const entry = data.find(x => x.customer_id === c.id) || {};
+            const daysVal = entry.days ? JSON.parse(entry.days) : Array(days).fill("");
+            return `<tr data-id="${c.id}">
+                <td>${c.name}</td>
+                <td><input class="r" value="${entry.rate || c.default_rate}" style="width:40px"></td>
+                ${daysVal.map(v => `<td><input class="d" value="${v}" style="width:30px"></td>`).join('')}
+                <td class="tot">0</td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function saveData() {
+        const rows = [...document.querySelectorAll("#tb tr")].map(tr => ({
+            customer_id: parseInt(tr.dataset.id),
+            rate: parseFloat(tr.querySelector(".r").value),
+            days: [...tr.querySelectorAll(".d")].map(i => i.value)
+        }));
+        await fetch("/save", {
+            method: "POST",
+            body: JSON.stringify({ month: mSel.value, rows })
+        });
+        alert("Saved!");
+    }
+
+    async function init() {
+        const res = await fetch("/customers");
+        if (res.ok) {
+            customers = await res.json();
+            document.getElementById("loginBox").style.display = "none";
+            document.getElementById("app").style.display = "block";
+            loadData();
+        }
+    }
+
+    init();
 </script>
 </body>
 </html>
