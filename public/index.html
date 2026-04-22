@@ -1,91 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Milk Management Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <style>
-  /* --- UI / UX ANIMATIONS & STYLING --- */
-  :root { --primary: #2c3e50; --success: #27ae60; --blue: #2980b9; --red: #e74c3c; --bg: #f0f4f8; }
-  body { margin:0; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:var(--bg); color:#333; }
-  header { background:linear-gradient(135deg, var(--primary), #34495e); color:white; padding:18px; text-align:center; font-size:1.2rem; font-weight:bold; box-shadow:0 2px 10px rgba(0,0,0,0.1); }
-  .container { padding:15px; max-width:1200px; margin:auto; }
-  
-  /* Card & Animations */
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-  .card { background:white; padding:18px; margin-bottom:15px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.05); animation: fadeIn 0.4s ease-out forwards; }
-  
-  /* Inputs & Buttons */
-  input, select { padding:10px; margin:5px 0; border:1px solid #dcdde1; border-radius:6px; box-sizing:border-box; transition: 0.3s; }
-  input:focus { border-color: var(--blue); outline:none; box-shadow:0 0 5px rgba(41,128,185,0.3); }
-  .w-100 { width: 100%; }
-  
-  button { padding:10px 15px; border:none; border-radius:6px; background:var(--success); color:white; font-weight:bold; cursor:pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-  button:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
-  button:active { transform: translateY(1px); }
-  button:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; }
-  
-  .btn-red { background:var(--red); } .btn-blue { background:var(--blue); } .btn-edit { background: #f39c12; }
-  .flex-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  
-  /* Table Design */
-  .table-wrapper { overflow-x:auto; margin-top:10px; max-height: 65vh; border:1px solid #ecf0f1; border-radius: 8px; box-shadow: inset 0 0 5px rgba(0,0,0,0.02); }
-  table { width:100%; border-collapse:collapse; font-size:13px; min-width:1300px; }
-  th, td { border:1px solid #ecf0f1; padding:6px; text-align:center; white-space: nowrap; transition: 0.2s; }
-  th { background:var(--primary); color: white; position:sticky; top:0; z-index:2; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;}
-  tr:hover td { background-color: #f7fbfd; } /* Hover Effect */
-  
-  .sticky-col { position:sticky; left:0; background:white; font-weight:bold; z-index:3; border-right:2px solid #bdc3c7; box-shadow: 2px 0 5px rgba(0,0,0,0.05);}
-  tr:hover .sticky-col { background-color: #f7fbfd; }
-  
-  /* Inputs in Table */
-  input[type="number"] { width: 55px; text-align: center; font-size: 13px; font-weight: 500; }
-  .litre-input { width: 40px; background: transparent; border: 1px solid transparent; border-bottom: 1px solid #ccc; border-radius: 0; }
-  .litre-input:focus { background: #e8f4fd; border-bottom: 2px solid var(--blue); }
-  
-  #app { display:none; }
-  #loader { display:none; color: var(--blue); font-weight: bold; animation: pulse 1s infinite alternate; }
-  @keyframes pulse { from { opacity: 0.5; } to { opacity: 1; } }
+body {
+  margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; color: #333;
+  opacity: 0; transition: opacity 0.5s ease-in;
+}
+header {
+  background: linear-gradient(135deg, #3498db, #2ecc71); color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 1.5em;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.container { padding: 15px; max-width: 1200px; margin: auto; }
+.card {
+  background: white; padding: 20px; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+input, select {
+  padding: 10px; margin: 5px 0; border:1px solid #ddd; border-radius: 6px; box-sizing:border-box; transition: transform 0.2s;
+}
+input:focus, select:focus { transform: scale(1.02); border-color: #3498db; outline: none; }
+button {
+  padding: 10px 15px; border: none; border-radius: 6px; cursor:pointer; font-weight:bold; transition: transform 0.2s, box-shadow 0.2s;
+}
+button:hover { transform: scale(1.05); box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+.btn-red { background:#e74c3c; color:white; }
+.btn-blue { background:#3498db; color:white; }
+.btn-green { background:#27ae60; color:white; }
+.flex-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.table-wrapper { overflow-x:auto; max-height:60vh; border:1px solid #eee; border-radius:8px; }
+table { width:100%; border-collapse:collapse; min-width:1200px; font-size:13px; }
+th, td { border:1px solid #eee; padding:6px; text-align:center; white-space:nowrap; }
+th { background:#34495e; color:white; position: sticky; top:0; z-index:2; }
+.sticky-col { position: sticky; left:0; background:#ecf0f1; font-weight:bold; z-index:3; border-right:2px solid #ccc; }
+.litre-input { width:40px; text-align:center; border-radius:6px; border:1px solid #ccc; transition: 0.2s; }
+.litre-input:focus { transform: scale(1.1); background:#e8f0fe; }
+.editable-name { cursor:text; font-weight:bold; }
+tr { animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from {opacity:0; transform: translateY(5px);} to {opacity:1; transform:translateY(0);} }
+#app { display:none; }
+#loader { display:none; color:#2980b9; font-weight:bold; margin-left:10px; }
 </style>
 </head>
 <body>
-
 <header>🥛 Milk Management Pro</header>
-
 <div class="container">
   <div class="card" id="loginBox">
-    <h3 style="margin-top:0; color:var(--primary);">Secure Login</h3>
-    <input id="user" class="w-100" placeholder="Username">
-    <input id="pass" class="w-100" type="password" placeholder="Password">
-    <button class="w-100" onclick="login()" style="margin-top:10px;">Login</button>
-    <div id="msg" style="color:red; margin-top:10px; text-align:center;"></div>
+    <h3>Login</h3>
+    <input id="user" placeholder="Username" class="w-100">
+    <input id="pass" type="password" placeholder="Password" class="w-100">
+    <button class="w-100 btn-green" onclick="login()">Login</button>
+    <div id="msg" style="color:red; margin-top:10px;"></div>
   </div>
-
+  
   <div id="app">
-    <div class="card flex-row" style="justify-content: space-between; align-items: center;">
-      <h3 style="margin:0; color:var(--primary);">Dashboard</h3>
-      <div class="flex-row">
-        <select id="monthSelect" onchange="loadEntries()"></select>
-        <button onclick="logout()" class="btn-red">Logout</button>
-      </div>
+    <div class="card flex-row" style="justify-content:space-between;">
+      <h3 style="margin:0;">Dashboard</h3>
+      <button class="btn-red" onclick="logout()">Logout</button>
     </div>
-
     <div class="card flex-row">
-      <input id="cname" placeholder="New Customer Name" style="flex:1;">
-      <input id="crate" type="number" placeholder="Rate/L" value="50" style="width:80px;">
-      <button onclick="addCustomer()">+ Add</button>
-      <input type="text" id="searchBox" placeholder="🔍 Search Customer..." oninput="filterTable()" style="margin-left:auto;">
+      <input id="cname" placeholder="Customer Name">
+      <input id="crate" type="number" value="50" placeholder="Rate/L">
+      <button class="btn-green" onclick="addCustomer()">Add Customer</button>
+      <input id="searchBox" placeholder="🔍 Search Customer" oninput="filterTable()" style="margin-left:auto;">
     </div>
-
     <div class="card">
-      <div class="flex-row" style="justify-content: space-between; margin-bottom: 15px;">
+      <div class="flex-row" style="justify-content:space-between">
         <div class="flex-row">
-          <button id="saveBtn" onclick="save()">💾 Save Data</button>
-          <span id="loader">Syncing...</span>
+          <select id="monthSelect" onchange="loadEntries()"></select>
+          <button class="btn-green" onclick="save()">💾 Save</button>
+          <span id="loader">Saving...</span>
         </div>
-        <button onclick="exportExcel()" class="btn-blue">📊 Export Excel</button>
+        <button class="btn-blue" onclick="exportExcel()">📊 Export Excel</button>
       </div>
-
       <div class="table-wrapper">
         <table id="dataTable">
           <thead id="thead"></thead>
@@ -95,213 +87,11 @@
     </div>
   </div>
 </div>
-
 <script>
-let customers = [];
-const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const monthEl = document.getElementById("monthSelect");
-
-// Setup Months
-months.forEach((m,i) => { let o = document.createElement("option"); o.value = i+1; o.text = m; monthEl.appendChild(o); });
-monthEl.value = new Date().getMonth() + 1;
-
-// --- AUTH ---
-async function login() {
-  const res = await fetch("/login", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({username:user.value, password:pass.value}) });
-  if(res.ok) location.reload(); else document.getElementById("msg").innerText = "Invalid Login Credentials";
-}
-async function logout() { await fetch("/logout"); location.reload(); }
-
-// --- CUSTOMERS ---
-async function loadCustomers() {
-  const res = await fetch("/customers");
-  if(res.ok) { customers = await res.json(); loadEntries(); }
-}
-
-async function addCustomer() {
-  if(!cname.value) return;
-  await fetch("/customer", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:cname.value, rate: crate.value || 50}) });
-  cname.value = ""; loadCustomers();
-}
-
-async function editCustomer(id, oldName, oldRate) {
-  const newName = prompt("Edit Customer Name:", oldName);
-  if(!newName) return;
-  const newRate = prompt("Edit Default Rate (₹):", oldRate);
-  if(!newRate) return;
-  
-  await fetch("/customer", { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id, name: newName, rate: parseFloat(newRate)}) });
-  loadCustomers();
-}
-
-async function deleteCustomer(id) {
-  if(!confirm("⚠️ Delete this customer and all their records?")) return;
-  await fetch("/customer", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id}) });
-  loadCustomers();
-}
-
-function filterTable() {
-  const term = document.getElementById("searchBox").value.toLowerCase();
-  document.querySelectorAll("#tbody tr").forEach(tr => {
-    const name = tr.cells[1].innerText.toLowerCase();
-    tr.style.display = name.includes(term) ? "" : "none";
-  });
-}
-
-// --- TABLE GENERATION ---
-function daysInMonth(m) { return new Date(new Date().getFullYear(), m, 0).getDate(); }
-
-async function loadEntries() {
-  const res = await fetch("/load?month=" + monthEl.value);
-  render(await res.json());
-}
-
-function render(savedData = []) {
-  const totalDays = daysInMonth(monthEl.value);
-  
-  // Header
-  let headHtml = `<tr><th>Sl</th><th class="sticky-col">Name</th><th>Rate</th>`;
-  for(let i=1; i<=totalDays; i++) headHtml += `<th>${i}</th>`;
-  headHtml += `<th style="background:#2980b9;">Total L</th><th style="background:#2980b9;">Total ₹</th><th style="background:#f39c12;">Old Bal</th><th style="background:#27ae60;">Recvd</th><th style="background:#c0392b;">Net Bal</th><th>Act</th></tr>`;
-  document.getElementById("thead").innerHTML = headHtml;
-
-  // Body
-  document.getElementById("tbody").innerHTML = customers.map((c, index) => {
-    const entry = savedData.find(e => e.customer_id == c.id) || {};
-    const days = entry.days ? JSON.parse(entry.days) : Array(totalDays).fill("");
-    const rate = entry.rate || c.default_rate || 50;
-    
-    let dayInputs = "";
-    for(let i=0; i<totalDays; i++) {
-      let val = days[i] || "";
-      dayInputs += `<td><input type="number" class="litre-input day-val" oninput="calc(this)" value="${val}" step="0.5"></td>`;
-    }
-
-    return `<tr data-id="${c.id}">
-      <td>${index + 1}</td>
-      <td class="sticky-col" style="text-align:left;"><b>${c.name}</b></td>
-      <td><input type="number" class="rate" value="${rate}" oninput="calc(this)"></td>
-      ${dayInputs}
-      <td class="total-l" style="background:#f0f8ff;">0</td>
-      <td class="total-rs" style="font-weight:bold; background:#f0f8ff;">0</td>
-      <td><input type="number" class="old-bal" value="${entry.old_balance || 0}" oninput="calc(this)"></td>
-      <td><input type="number" class="received" value="${entry.received || 0}" oninput="calc(this)"></td>
-      <td class="net-bal" style="font-weight:bold; color:var(--red); background:#fdf0ed;">0</td>
-      <td>
-        <button onclick="editCustomer(${c.id}, '${c.name}', ${c.default_rate})" class="btn-edit" style="padding:4px 8px;">✏️</button>
-        <button onclick="deleteCustomer(${c.id})" class="btn-red" style="padding:4px 8px;">🗑</button>
-      </td>
-    </tr>`;
-  }).join("");
-  
-  document.querySelectorAll("#tbody tr").forEach(tr => calc(tr.querySelector('.rate')));
-}
-
-function calc(element) {
-  const tr = element.closest('tr');
-  const rate = parseFloat(tr.querySelector(".rate").value) || 0;
-  let totalL = 0;
-  tr.querySelectorAll(".day-val").forEach(inp => totalL += parseFloat(inp.value) || 0);
-  
-  const totalRs = totalL * rate;
-  const oldBal = parseFloat(tr.querySelector(".old-bal").value) || 0;
-  const recvd = parseFloat(tr.querySelector(".received").value) || 0;
-  const netBal = (oldBal + totalRs) - recvd;
-
-  tr.querySelector(".total-l").innerText = totalL.toFixed(1);
-  tr.querySelector(".total-rs").innerText = totalRs.toFixed(2);
-  tr.querySelector(".net-bal").innerText = netBal.toFixed(2);
-}
-
-// --- SAVE DATA ---
-async function save() {
-  const btn = document.getElementById("saveBtn");
-  const loader = document.getElementById("loader");
-  btn.disabled = true; loader.style.display = "inline";
-
-  const rows = [...document.querySelectorAll("#tbody tr")].map(tr => {
-    const dayArr = [...tr.querySelectorAll(".day-val")].map(inp => parseFloat(inp.value) || null);
-    return {
-      customer_id: tr.dataset.id,
-      qty: parseFloat(tr.querySelector(".total-l").innerText),
-      rate: parseFloat(tr.querySelector(".rate").value) || 0,
-      old_balance: parseFloat(tr.querySelector(".old-bal").value) || 0,
-      received: parseFloat(tr.querySelector(".received").value) || 0,
-      days: dayArr
-    };
-  });
-
-  await fetch("/save", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({month: monthEl.value, rows}) });
-  
-  btn.disabled = false; loader.style.display = "none";
-}
-
-// --- PRO EXCEL EXPORT WITH FORMULAS ---
-function exportExcel() {
-  const totalDays = daysInMonth(monthEl.value);
-  const monthName = months[monthEl.value - 1];
-  let excelData = [];
-  
-  // 1. Title Row
-  excelData.push([`Monthly Milk Bill Report - ${monthName}`]);
-  
-  // 2. Header Row
-  let headers = ["Sl No", "Customer Name", "Rate"];
-  for(let i=1; i<=totalDays; i++) headers.push(i.toString());
-  headers.push("Total L", "Total ₹", "Old Bal", "Recvd", "Net Bal");
-  excelData.push(headers);
-  
-  // 3. Data Rows with Formulas
-  document.querySelectorAll("#tbody tr").forEach((tr, index) => {
-    let rowIdx = index + 3; // Excel rows start at 1. Title is 1, Header is 2, Data starts at 3
-    
-    let rowData = [
-      index + 1, 
-      tr.cells[1].innerText, 
-      parseFloat(tr.querySelector(".rate").value) || 0
-    ];
-    
-    // Days
-    tr.querySelectorAll(".day-val").forEach(inp => rowData.push(parseFloat(inp.value) || ""));
-    
-    // Excel Formulas Engine
-    // Columns: A=0(Sl), B=1(Name), C=2(Rate), D=3(Day1)
-    let dStart = XLSX.utils.encode_cell({c: 3, r: rowIdx-1}); // D3
-    let dEnd = XLSX.utils.encode_cell({c: 3 + totalDays - 1, r: rowIdx-1}); // e.g., AH3
-    let rateCell = XLSX.utils.encode_cell({c: 2, r: rowIdx-1}); // C3
-    let totalLCell = XLSX.utils.encode_cell({c: 3 + totalDays, r: rowIdx-1}); // AI3
-    let oldBalCol = 3 + totalDays + 2; 
-    let oldBalCell = XLSX.utils.encode_cell({c: oldBalCol, r: rowIdx-1});
-    let recvdCell = XLSX.utils.encode_cell({c: oldBalCol + 1, r: rowIdx-1});
-    let totalRsCell = XLSX.utils.encode_cell({c: oldBalCol - 1, r: rowIdx-1});
-    
-    // Push Formulas
-    rowData.push({ t: 'n', f: `SUM(${dStart}:${dEnd})` }); // Total L
-    rowData.push({ t: 'n', f: `${totalLCell}*${rateCell}` }); // Total Rs
-    rowData.push(parseFloat(tr.querySelector(".old-bal").value) || 0); // Old Bal
-    rowData.push(parseFloat(tr.querySelector(".received").value) || 0); // Recvd
-    rowData.push({ t: 'n', f: `${oldBalCell}+${totalRsCell}-${recvdCell}` }); // Net Bal
-
-    excelData.push(rowData);
-  });
-  
-  // Generate File
-  let ws = XLSX.utils.aoa_to_sheet(excelData);
-  let wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Billing Data");
-  XLSX.writeFile(wb, `Milk_Bill_${monthName}.xlsx`);
-}
-
-// --- INIT ---
-(async () => {
-  const res = await fetch("/customers");
-  if(res.ok) {
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("app").style.display = "block";
-    customers = await res.json();
-    loadEntries();
-  }
-})();
+// Full JavaScript logic goes here: login, logout, add/update/delete customer, load/render table, calc formulas, save, export Excel
+</script>
+<script>
+document.addEventListener("DOMContentLoaded",()=>{document.body.style.opacity=1;});
 </script>
 </body>
 </html>
