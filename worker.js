@@ -2,14 +2,12 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // Helper to return JSON
     const json = (data, status = 200) =>
       new Response(JSON.stringify(data), {
         status,
         headers: { "Content-Type": "application/json" },
       });
 
-    // Helper to get cookie
     const getCookie = (req, name) => {
       const match = (req.headers.get("Cookie") || "").match(
         new RegExp(`${name}=([^;]+)`)
@@ -17,7 +15,6 @@ export default {
       return match ? match[1] : null;
     };
 
-    // Get user from session cookie
     const getUser = async (req) => {
       const token = getCookie(req, "session");
       if (!token) return null;
@@ -30,7 +27,7 @@ export default {
     };
 
     try {
-      // --- LOGIN ---
+      // --- AUTH ---
       if (url.pathname === "/login" && request.method === "POST") {
         const { username, password } = await request.json();
         const user = await env.DB.prepare(
@@ -54,28 +51,25 @@ export default {
         });
       }
 
-      // --- LOGOUT ---
       if (url.pathname === "/logout") {
         return new Response(JSON.stringify({ success: true }), {
           headers: {
             "Set-Cookie":
-              "session=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict",
+              "session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict",
           },
         });
       }
 
-      // --- AUTH CHECK ---
       const uid = await getUser(request);
-      if (!uid) {
+      if (!uid && url.pathname !== "/") {
         if (
-          url.pathname !== "/" &&
-          url.pathname !== "/login" &&
-          url.pathname !== "/logout"
+          url.pathname.startsWith("/customer") ||
+          ["/save", "/load", "/analytics"].includes(url.pathname)
         )
           return json({ error: "Unauthorized" }, 401);
       }
 
-      // --- GET ALL CUSTOMERS ---
+      // --- CUSTOMERS ---
       if (url.pathname === "/customers") {
         const { results } = await env.DB.prepare(
           "SELECT * FROM customers WHERE user_id=?"
@@ -85,7 +79,6 @@ export default {
         return json(results);
       }
 
-      // --- ADD CUSTOMER ---
       if (url.pathname === "/customer" && request.method === "POST") {
         const { name, rate } = await request.json();
         const res = await env.DB.prepare(
@@ -96,7 +89,6 @@ export default {
         return json({ id: res.meta.last_row_id });
       }
 
-      // --- DELETE CUSTOMER ---
       if (url.pathname === "/customer" && request.method === "DELETE") {
         const { id } = await request.json();
         await env.DB.prepare(
@@ -112,7 +104,6 @@ export default {
         return json({ success: true });
       }
 
-      // --- UPDATE CUSTOMER ---
       if (url.pathname === "/customer" && request.method === "PUT") {
         const { id, name, rate } = await request.json();
         await env.DB.prepare(
@@ -123,36 +114,65 @@ export default {
         return json({ success: true });
       }
 
-      // --- SAVE ENTRIES ---
-      if (url.pathname === "/save" && request.method === "POST") {
-        const { month, entries } = await request.json();
-        for (const e of entries) {
-          await env.DB.prepare(
-            `INSERT INTO entries (customer_id, month, day, litre, rate) 
-             VALUES (?, ?, ?, ?, ?) 
-             ON CONFLICT(customer_id, month, day) 
-             DO UPDATE SET litre=?, rate=?`
-          )
-            .bind(e.customer_id, month, e.day, e.litre, e.rate, e.litre, e.rate)
-            .run();
-        }
-        return json({ success: true });
-      }
-
-      // --- LOAD ENTRIES ---
+      // --- ENTRIES ---
       if (url.pathname === "/load") {
-        const month = parseInt(url.searchParams.get("month"));
+        const month = url.searchParams.get("month");
         const { results } = await env.DB.prepare(
-          "SELECT * FROM entries WHERE user_id=? AND month=?"
+          `SELECT e.* 
+           FROM entries e 
+           JOIN customers c ON e.customer_id=c.id 
+           WHERE e.month=? AND c.user_id=?`
         )
-          .bind(uid, month)
+          .bind(month, uid)
           .all();
         return json(results);
       }
 
-      return json({ message: "Not found" }, 404);
+      if (url.pathname === "/save" && request.method === "POST") {
+        const { month, rows } = await request.json();
+        // Delete existing entries for this month
+        await env.DB.prepare(
+          "DELETE FROM entries WHERE month=? AND customer_id IN (SELECT id FROM customers WHERE user_id=?)"
+        )
+          .bind(month, uid)
+          .run();
+
+        const stmt = env.DB.prepare(
+          "INSERT INTO entries (customer_id, month, qty, rate, days, old_balance, received) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        );
+        const batch = rows.map((r) =>
+          stmt.bind(
+            r.customer_id,
+            month,
+            r.qty,
+            r.rate,
+            JSON.stringify(r.days),
+            r.old_balance,
+            r.received
+          )
+        );
+        await env.DB.batch(batch);
+        return json({ success: true });
+      }
+
+      // --- ANALYTICS ---
+      if (url.pathname === "/analytics") {
+        const { results } = await env.DB.prepare(
+          `SELECT e.month, SUM(e.qty*e.rate) as revenue
+           FROM entries e
+           JOIN customers c ON e.customer_id=c.id
+           WHERE c.user_id=?
+           GROUP BY e.month`
+        )
+          .bind(uid)
+          .all();
+        return json(results);
+      }
+
+      // Serve assets if not API
+      return env.ASSETS.fetch(request);
     } catch (err) {
-      return json({ error: err.message }, 500);
+      return json({ error: err.toString() }, 500);
     }
   },
 };
