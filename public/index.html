@@ -4,94 +4,373 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Milk Management Pro</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
 <style>
 body {
-  margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; color: #333;
-  opacity: 0; transition: opacity 0.5s ease-in;
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+  background: #f4f7f6;
+  color: #333;
+  opacity: 0;
+  transition: 0.5s ease;
 }
+
 header {
-  background: linear-gradient(135deg, #3498db, #2ecc71); color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 1.5em;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  background: linear-gradient(135deg,#2c3e50,#3498db);
+  color: white;
+  padding: 18px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 1px;
 }
+
 .container { padding: 15px; max-width: 1200px; margin: auto; }
+
 .card {
-  background: white; padding: 20px; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  transition: transform 0.3s, box-shadow 0.3s;
+  background: white;
+  padding: 15px;
+  margin: 12px 0;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  transition: 0.3s;
 }
-.card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+.card:hover { transform: translateY(-3px); }
+
+.flex-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 input, select {
-  padding: 10px; margin: 5px 0; border:1px solid #ddd; border-radius: 6px; box-sizing:border-box; transition: transform 0.2s;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  outline: none;
+  transition: 0.2s;
 }
-input:focus, select:focus { transform: scale(1.02); border-color: #3498db; outline: none; }
+input:focus { border-color: #3498db; transform: scale(1.02); }
+
 button {
-  padding: 10px 15px; border: none; border-radius: 6px; cursor:pointer; font-weight:bold; transition: transform 0.2s, box-shadow 0.2s;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
 }
-button:hover { transform: scale(1.05); box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+
+button:hover { transform: scale(1.05); }
+
+.btn-green { background:#27ae60; color:white; }
 .btn-red { background:#e74c3c; color:white; }
 .btn-blue { background:#3498db; color:white; }
-.btn-green { background:#27ae60; color:white; }
-.flex-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-.table-wrapper { overflow-x:auto; max-height:60vh; border:1px solid #eee; border-radius:8px; }
-table { width:100%; border-collapse:collapse; min-width:1200px; font-size:13px; }
-th, td { border:1px solid #eee; padding:6px; text-align:center; white-space:nowrap; }
-th { background:#34495e; color:white; position: sticky; top:0; z-index:2; }
-.sticky-col { position: sticky; left:0; background:#ecf0f1; font-weight:bold; z-index:3; border-right:2px solid #ccc; }
-.litre-input { width:40px; text-align:center; border-radius:6px; border:1px solid #ccc; transition: 0.2s; }
-.litre-input:focus { transform: scale(1.1); background:#e8f0fe; }
-.editable-name { cursor:text; font-weight:bold; }
-tr { animation: fadeIn 0.4s ease; }
-@keyframes fadeIn { from {opacity:0; transform: translateY(5px);} to {opacity:1; transform:translateY(0);} }
-#app { display:none; }
-#loader { display:none; color:#2980b9; font-weight:bold; margin-left:10px; }
+
+.table-wrapper {
+  overflow-x: auto;
+  max-height: 65vh;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1200px;
+  font-size: 13px;
+}
+
+th, td {
+  border: 1px solid #eee;
+  padding: 6px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+th {
+  background: #34495e;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.sticky-col {
+  position: sticky;
+  left: 0;
+  background: #ecf0f1;
+  font-weight: bold;
+  z-index: 3;
+}
+
+.litre-input {
+  width: 45px;
+  text-align: center;
+  border-radius: 5px;
+}
+
+.litre-input:focus {
+  background: #e8f0fe;
+  transform: scale(1.1);
+}
+
+.editable {
+  font-weight: bold;
+  cursor: text;
+}
+
+#app { display: none; }
+
+#loader {
+  display: none;
+  color: #3498db;
+  font-weight: bold;
+}
+
+tr {
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from {opacity:0; transform: translateY(5px);}
+  to {opacity:1; transform: translateY(0);}
+}
 </style>
 </head>
+
 <body>
+
 <header>🥛 Milk Management Pro</header>
+
 <div class="container">
+
+  <!-- LOGIN -->
   <div class="card" id="loginBox">
     <h3>Login</h3>
     <input id="user" placeholder="Username" class="w-100">
     <input id="pass" type="password" placeholder="Password" class="w-100">
-    <button class="w-100 btn-green" onclick="login()">Login</button>
-    <div id="msg" style="color:red; margin-top:10px;"></div>
+    <button class="btn-green w-100" onclick="login()">Login</button>
+    <p id="msg" style="color:red;"></p>
   </div>
-  
+
+  <!-- APP -->
   <div id="app">
-    <div class="card flex-row" style="justify-content:space-between;">
-      <h3 style="margin:0;">Dashboard</h3>
+
+    <div class="card flex-row" style="justify-content: space-between;">
+      <h3>Dashboard</h3>
       <button class="btn-red" onclick="logout()">Logout</button>
     </div>
+
+    <!-- ADD CUSTOMER -->
     <div class="card flex-row">
       <input id="cname" placeholder="Customer Name">
-      <input id="crate" type="number" value="50" placeholder="Rate/L">
-      <button class="btn-green" onclick="addCustomer()">Add Customer</button>
-      <input id="searchBox" placeholder="🔍 Search Customer" oninput="filterTable()" style="margin-left:auto;">
+      <input id="crate" type="number" value="50" placeholder="Rate">
+      <button class="btn-green" onclick="addCustomer()">Add</button>
+
+      <input id="search" placeholder="Search..." oninput="filterTable()" style="margin-left:auto;">
     </div>
+
+    <!-- TABLE -->
     <div class="card">
-      <div class="flex-row" style="justify-content:space-between">
+
+      <div class="flex-row" style="justify-content: space-between;">
         <div class="flex-row">
-          <select id="monthSelect" onchange="loadEntries()"></select>
+          <select id="month" onchange="loadData()"></select>
           <button class="btn-green" onclick="save()">💾 Save</button>
           <span id="loader">Saving...</span>
         </div>
-        <button class="btn-blue" onclick="exportExcel()">📊 Export Excel</button>
+
+        <button class="btn-blue" onclick="exportExcel()">📊 Excel</button>
       </div>
+
       <div class="table-wrapper">
-        <table id="dataTable">
+        <table id="table">
           <thead id="thead"></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
+
     </div>
+
   </div>
 </div>
+
 <script>
-// Full JavaScript logic goes here: login, logout, add/update/delete customer, load/render table, calc formulas, save, export Excel
+let customers = [];
+const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const month = document.getElementById("month");
+
+months.forEach((m,i)=>{
+  let o=document.createElement("option");
+  o.value=i+1;o.text=m;
+  month.appendChild(o);
+});
+month.value=new Date().getMonth()+1;
+
+// LOGIN
+async function login(){
+  let res = await fetch("/login",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({username:user.value,password:pass.value})
+  });
+  if(res.ok) location.reload();
+  else msg.innerText="Invalid Login";
+}
+
+// LOGOUT
+async function logout(){
+  await fetch("/logout");
+  location.reload();
+}
+
+// LOAD CUSTOMERS
+async function loadCustomers(){
+  let res = await fetch("/customers");
+  customers = await res.json();
+  loadData();
+}
+
+// ADD CUSTOMER
+async function addCustomer(){
+  await fetch("/customer",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name:cname.value,rate:crate.value})
+  });
+  cname.value="";
+  loadCustomers();
+}
+
+// DELETE
+async function deleteCustomer(id){
+  await fetch("/customer",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
+  loadCustomers();
+}
+
+// UPDATE NAME/RATE
+async function updateCustomer(id,name,rate){
+  await fetch("/customer",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,name,rate})});
+}
+
+// FILTER
+function filterTable(){
+  let t = search.value.toLowerCase();
+  document.querySelectorAll("#tbody tr").forEach(r=>{
+    r.style.display = r.innerText.toLowerCase().includes(t)?"":"none";
+  });
+}
+
+// DAYS
+function days(m){
+  return new Date(new Date().getFullYear(),m,0).getDate();
+}
+
+// LOAD TABLE
+async function loadData(){
+  let res = await fetch("/load?month="+month.value);
+  let data = await res.json();
+
+  let d = days(month.value);
+
+  let head = `<tr>
+    <th>Sl</th>
+    <th class="sticky-col">Name</th>
+    <th>Rate</th>`;
+
+  for(let i=1;i<=d;i++) head+=`<th>${i}</th>`;
+
+  head+=`<th>Total L</th><th>Total ₹</th><th>Old</th><th>Rec</th><th>Net</th><th>Act</th></tr>`;
+
+  thead.innerHTML=head;
+
+  tbody.innerHTML=customers.map((c,i)=>{
+    let e=data.find(x=>x.customer_id==c.id)||{};
+    let days=e.days?JSON.parse(e.days):Array(d).fill("");
+
+    let inputs="";
+    let total=0;
+
+    for(let i=0;i<d;i++){
+      inputs+=`<td><input class="litre-input" type="number" value="${days[i]||""}" oninput="calc(this)"></td>`;
+    }
+
+    return `<tr data-id="${c.id}">
+      <td>${i+1}</td>
+      <td contenteditable="true" class="editable" onblur="updateCustomer(${c.id},this.innerText,${c.default_rate})">${c.name}</td>
+      <td><input type="number" value="${e.rate||c.default_rate}" oninput="calc(this)"></td>
+      ${inputs}
+      <td class="tl">0</td>
+      <td class="tr">0</td>
+      <td><input class="old" type="number" value="${e.old_balance||0}" oninput="calc(this)"></td>
+      <td><input class="rec" type="number" value="${e.received||0}" oninput="calc(this)"></td>
+      <td class="net">0</td>
+      <td><button class="btn-red" onclick="deleteCustomer(${c.id})">🗑</button></td>
+    </tr>`;
+  }).join("");
+
+  document.querySelectorAll("tr").forEach(r=>calc(r));
+}
+
+// CALC
+function calc(el){
+  let tr=el.closest("tr");
+  let rate=+tr.querySelector("input[type=number]").value||0;
+
+  let litres=0;
+  tr.querySelectorAll(".litre-input").forEach(i=>litres+=+i.value||0);
+
+  let total=litres*rate;
+  let old=+tr.querySelector(".old").value||0;
+  let rec=+tr.querySelector(".rec").value||0;
+
+  tr.querySelector(".tl").innerText=litres.toFixed(1);
+  tr.querySelector(".tr").innerText=total.toFixed(2);
+  tr.querySelector(".net").innerText=((old+total)-rec).toFixed(2);
+}
+
+// SAVE
+async function save(){
+  loader.style.display="inline";
+  let rows=[...document.querySelectorAll("tr[data-id]")].map(tr=>{
+    return {
+      customer_id:tr.dataset.id,
+      rate:+tr.querySelector("input[type=number]").value,
+      old_balance:+tr.querySelector(".old").value,
+      received:+tr.querySelector(".rec").value,
+      days:[...tr.querySelectorAll(".litre-input")].map(i=>+i.value||0)
+    };
+  });
+
+  await fetch("/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({month:month.value,rows})});
+
+  loader.style.display="none";
+  alert("Saved!");
+}
+
+// EXPORT
+function exportExcel(){
+  let wb=XLSX.utils.table_to_book(document.getElementById("table"));
+  XLSX.writeFile(wb,"Milk_Report.xlsx");
+}
+
+// INIT
+(async()=>{
+  let res=await fetch("/customers");
+  if(res.ok){
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("app").style.display="block";
+    customers=await res.json();
+    loadData();
+  }
+  document.body.style.opacity=1;
+})();
 </script>
-<script>
-document.addEventListener("DOMContentLoaded",()=>{document.body.style.opacity=1;});
-</script>
+
 </body>
 </html>
