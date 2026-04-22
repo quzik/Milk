@@ -1,4 +1,4 @@
-name = "milk-management"
+name = "milk"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
