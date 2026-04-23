@@ -9,137 +9,221 @@
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
 <style>
+:root {
+  --primary: #3498db;
+  --primary-hover: #2980b9;
+  --success: #27ae60;
+  --success-hover: #219653;
+  --danger: #e74c3c;
+  --danger-hover: #c0392b;
+  --dark: #2c3e50;
+  --bg: #f4f7f6;
+  --card-bg: rgba(255, 255, 255, 0.95);
+}
+
 body {
   margin: 0;
-  font-family: "Segoe UI", sans-serif;
-  background: #f4f7f6;
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: linear-gradient(135deg, #e0eafc, #cfdef3);
   color: #333;
+  min-height: 100vh;
   opacity: 0;
-  transition: 0.5s ease;
+  transition: opacity 0.5s ease;
 }
 
 header {
-  background: linear-gradient(135deg,#2c3e50,#3498db);
+  background: linear-gradient(135deg, var(--dark), var(--primary));
   color: white;
-  padding: 18px;
+  padding: 20px;
   text-align: center;
-  font-size: 20px;
-  font-weight: bold;
+  font-size: 24px;
+  font-weight: 700;
   letter-spacing: 1px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
-.container { padding: 15px; max-width: 1200px; margin: auto; }
+.container { padding: 20px; max-width: 1250px; margin: auto; }
 
 .card {
-  background: white;
-  padding: 15px;
-  margin: 12px 0;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-  transition: 0.3s;
+  background: var(--card-bg);
+  padding: 20px;
+  margin: 15px 0;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.4);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
 }
-.card:hover { transform: translateY(-3px); }
+.card:hover { 
+  transform: translateY(-2px); 
+  box-shadow: 0 12px 25px rgba(0,0,0,0.1);
+}
 
 .flex-row {
   display: flex;
-  gap: 10px;
+  gap: 15px;
   flex-wrap: wrap;
   align-items: center;
 }
 
 input, select {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border: 1px solid #d1d8e0;
+  border-radius: 8px;
   outline: none;
-  transition: 0.2s;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background: #fff;
 }
-input:focus { border-color: #3498db; transform: scale(1.02); }
+input:focus, select:focus { 
+  border-color: var(--primary); 
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
 
 button {
-  padding: 9px 12px;
+  padding: 10px 16px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  font-weight: bold;
-  transition: 0.2s;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
-button:hover { transform: scale(1.05); }
+button:active { transform: scale(0.95); }
 
-.btn-green { background:#27ae60; color:white; }
-.btn-red { background:#e74c3c; color:white; }
-.btn-blue { background:#3498db; color:white; }
+.btn-green { background: var(--success); color: white; }
+.btn-green:hover { background: var(--success-hover); box-shadow: 0 4px 10px rgba(39, 174, 96, 0.3); }
 
+.btn-red { background: var(--danger); color: white; }
+.btn-red:hover { background: var(--danger-hover); box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3); }
+
+.btn-blue { background: var(--primary); color: white; }
+.btn-blue:hover { background: var(--primary-hover); box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3); }
+
+.w-100 { width: 100%; box-sizing: border-box; margin-bottom: 15px;}
+
+/* Table Styles */
 .table-wrapper {
   overflow-x: auto;
-  max-height: 65vh;
-  border: 1px solid #eee;
-  border-radius: 8px;
+  max-height: 60vh;
+  border-radius: 10px;
+  border: 1px solid #e1e8ed;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   min-width: 1200px;
-  font-size: 13px;
+  font-size: 14px;
+  background: white;
 }
 
 th, td {
-  border: 1px solid #eee;
-  padding: 6px;
+  border-bottom: 1px solid #e1e8ed;
+  border-right: 1px solid #e1e8ed;
+  padding: 10px 8px;
   text-align: center;
   white-space: nowrap;
 }
 
 th {
-  background: #34495e;
+  background: var(--dark);
   color: white;
   position: sticky;
   top: 0;
   z-index: 2;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .sticky-col {
   position: sticky;
   left: 0;
-  background: #ecf0f1;
+  background: #f8fafc;
   font-weight: bold;
   z-index: 3;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
 }
+th.sticky-col { background: #1a252f; z-index: 4; }
 
-.litre-input {
-  width: 45px;
+tbody tr:hover td { background-color: #f1f5f9; }
+tbody tr:hover .sticky-col { background-color: #e2e8f0; }
+
+.litre-input, .old, .rec {
+  width: 50px;
   text-align: center;
-  border-radius: 5px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 6px;
 }
 
 .litre-input:focus {
   background: #e8f0fe;
-  transform: scale(1.1);
+  border-color: var(--primary);
 }
 
 .editable {
   font-weight: bold;
   cursor: text;
+  color: var(--primary);
+  text-decoration: underline dotted;
 }
 
 #app { display: none; }
 
-#loader {
-  display: none;
-  color: #3498db;
-  font-weight: bold;
+/* Loader & Toast */
+#loader { display: none; color: var(--primary); font-weight: bold; animation: pulse 1s infinite; }
+
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
 }
 
-tr {
-  animation: fadeIn 0.25s ease;
+tbody tr {
+  animation: slideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  opacity: 0;
 }
 
-@keyframes fadeIn {
-  from {opacity:0; transform: translateY(5px);}
-  to {opacity:1; transform: translateY(0);}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-15px); }
+  to { opacity: 1; transform: translateX(0); }
 }
+
+/* Toast Notification */
+#toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toast {
+  background: white;
+  color: #333;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  transform: translateX(120%);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border-left: 5px solid var(--primary);
+}
+.toast.show { transform: translateX(0); }
+.toast.success { border-left-color: var(--success); }
+.toast.error { border-left-color: var(--danger); }
 </style>
 </head>
 
@@ -149,43 +233,39 @@ tr {
 
 <div class="container">
 
-  <!-- LOGIN -->
-  <div class="card" id="loginBox">
-    <h3>Login</h3>
+  <div class="card" id="loginBox" style="max-width: 400px; margin: 40px auto;">
+    <h3 style="margin-top:0; color:var(--dark);">Welcome Back</h3>
     <input id="user" placeholder="Username" class="w-100">
     <input id="pass" type="password" placeholder="Password" class="w-100">
-    <button class="btn-green w-100" onclick="login()">Login</button>
-    <p id="msg" style="color:red;"></p>
+    <button class="btn-green w-100" style="justify-content:center; padding: 12px;" onclick="login()">Login to Dashboard</button>
+    <p id="msg" style="color:var(--danger); text-align:center; font-weight:bold;"></p>
   </div>
 
-  <!-- APP -->
   <div id="app">
 
     <div class="card flex-row" style="justify-content: space-between;">
-      <h3>Dashboard</h3>
-      <button class="btn-red" onclick="logout()">Logout</button>
+      <h3 style="margin:0; color:var(--dark);">Dashboard Overview</h3>
+      <button class="btn-red" onclick="logout()">Logout 🚪</button>
     </div>
 
-    <!-- ADD CUSTOMER -->
     <div class="card flex-row">
-      <input id="cname" placeholder="Customer Name">
-      <input id="crate" type="number" value="50" placeholder="Rate">
-      <button class="btn-green" onclick="addCustomer()">Add</button>
+      <input id="cname" placeholder="➕ New Customer Name" style="flex: 1; min-width: 200px;">
+      <input id="crate" type="number" value="50" placeholder="Default Rate" style="width: 100px;">
+      <button class="btn-green" onclick="addCustomer()">Add Customer</button>
 
-      <input id="search" placeholder="Search..." oninput="filterTable()" style="margin-left:auto;">
+      <input id="search" placeholder="🔍 Search customers..." oninput="filterTable()" style="margin-left:auto; min-width: 200px;">
     </div>
 
-    <!-- TABLE -->
     <div class="card">
 
-      <div class="flex-row" style="justify-content: space-between;">
+      <div class="flex-row" style="justify-content: space-between; margin-bottom: 15px;">
         <div class="flex-row">
-          <select id="month" onchange="loadData()"></select>
-          <button class="btn-green" onclick="save()">💾 Save</button>
-          <span id="loader">Saving...</span>
+          <select id="month" onchange="loadData()" style="font-weight: bold;"></select>
+          <button class="btn-green" onclick="save()">💾 Save Records</button>
+          <span id="loader">Saving to database...</span>
         </div>
 
-        <button class="btn-blue" onclick="exportExcel()">📊 Excel</button>
+        <button class="btn-blue" onclick="exportExcel()">📊 Export to Excel</button>
       </div>
 
       <div class="table-wrapper">
@@ -200,17 +280,38 @@ tr {
   </div>
 </div>
 
+<div id="toast-container"></div>
+
 <script>
 let customers = [];
-const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const month = document.getElementById("month");
+const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const monthSelect = document.getElementById("month");
 
 months.forEach((m,i)=>{
   let o=document.createElement("option");
   o.value=i+1;o.text=m;
-  month.appendChild(o);
+  monthSelect.appendChild(o);
 });
-month.value=new Date().getMonth()+1;
+monthSelect.value=new Date().getMonth()+1;
+
+// TOAST NOTIFICATION SYSTEM
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  let icon = type === 'success' ? '✅' : '❌';
+  toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+  container.appendChild(toast);
+  
+  // Trigger animation
+  setTimeout(() => toast.classList.add('show'), 10);
+  
+  // Remove after 3 seconds
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 400);
+  }, 3000);
+}
 
 // LOGIN
 async function login(){
@@ -220,7 +321,7 @@ async function login(){
     body:JSON.stringify({username:user.value,password:pass.value})
   });
   if(res.ok) location.reload();
-  else msg.innerText="Invalid Login";
+  else msg.innerText="Invalid Credentials";
 }
 
 // LOGOUT
@@ -238,31 +339,47 @@ async function loadCustomers(){
 
 // ADD CUSTOMER
 async function addCustomer(){
+  const nameInput = document.getElementById("cname");
+  const rateInput = document.getElementById("crate");
+  
+  if(!nameInput.value.trim()) {
+    showToast("Customer name is required!", "error");
+    nameInput.focus();
+    return;
+  }
+
   await fetch("/customer",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({name:cname.value,rate:crate.value})
+    body:JSON.stringify({name: nameInput.value, rate: rateInput.value})
   });
-  cname.value="";
+  
+  showToast(`Added ${nameInput.value} successfully!`, "success");
+  nameInput.value="";
   loadCustomers();
 }
 
 // DELETE
 async function deleteCustomer(id){
+  if(!confirm("Are you sure you want to delete this customer and all their records?")) return;
   await fetch("/customer",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
+  showToast("Customer deleted.", "success");
   loadCustomers();
 }
 
 // UPDATE NAME/RATE
 async function updateCustomer(id,name,rate){
   await fetch("/customer",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,name,rate})});
+  showToast("Customer updated.", "success");
 }
 
 // FILTER
 function filterTable(){
   let t = search.value.toLowerCase();
   document.querySelectorAll("#tbody tr").forEach(r=>{
-    r.style.display = r.innerText.toLowerCase().includes(t)?"":"none";
+    // Check against the sticky column (name)
+    let name = r.querySelector(".sticky-col").innerText.toLowerCase();
+    r.style.display = name.includes(t) ? "" : "none";
   });
 }
 
@@ -273,90 +390,104 @@ function days(m){
 
 // LOAD TABLE
 async function loadData(){
-  let res = await fetch("/load?month="+month.value);
+  let res = await fetch("/load?month="+monthSelect.value);
   let data = await res.json();
 
-  let d = days(month.value);
+  let d = days(monthSelect.value);
 
   let head = `<tr>
-    <th>Sl</th>
+    <th>#</th>
     <th class="sticky-col">Name</th>
-    <th>Rate</th>`;
+    <th>Rate (₹)</th>`;
 
   for(let i=1;i<=d;i++) head+=`<th>${i}</th>`;
 
-  head+=`<th>Total L</th><th>Total ₹</th><th>Old</th><th>Rec</th><th>Net</th><th>Act</th></tr>`;
+  head+=`<th>Total L</th><th>Total ₹</th><th>Old Bal</th><th>Received</th><th>Net Due</th><th>Action</th></tr>`;
 
   thead.innerHTML=head;
 
   tbody.innerHTML=customers.map((c,i)=>{
     let e=data.find(x=>x.customer_id==c.id)||{};
-    let days=e.days?JSON.parse(e.days):Array(d).fill("");
+    let dailyData=e.days?JSON.parse(e.days):Array(d).fill("");
 
     let inputs="";
-    let total=0;
-
-    for(let i=0;i<d;i++){
-      inputs+=`<td><input class="litre-input" type="number" value="${days[i]||""}" oninput="calc(this)"></td>`;
+    for(let j=0;j<d;j++){
+      inputs+=`<td><input class="litre-input" type="number" step="0.5" value="${dailyData[j]||""}" oninput="calc(this)"></td>`;
     }
 
-    return `<tr data-id="${c.id}">
+    // Stagger animation delays for a cool cascade effect
+    let animDelay = i * 0.05;
+
+    return `<tr data-id="${c.id}" style="animation-delay: ${animDelay}s">
       <td>${i+1}</td>
-      <td contenteditable="true" class="editable" onblur="updateCustomer(${c.id},this.innerText,${c.default_rate})">${c.name}</td>
-      <td><input type="number" value="${e.rate||c.default_rate}" oninput="calc(this)"></td>
+      <td contenteditable="true" class="editable sticky-col" onblur="updateCustomer(${c.id},this.innerText,${c.default_rate})">${c.name}</td>
+      <td><input class="rate" style="width:60px;" type="number" value="${e.rate||c.default_rate}" oninput="calc(this)"></td>
       ${inputs}
-      <td class="tl">0</td>
-      <td class="tr">0</td>
+      <td class="tl" style="font-weight:bold; color:var(--primary);">0</td>
+      <td class="tr" style="font-weight:bold;">0</td>
       <td><input class="old" type="number" value="${e.old_balance||0}" oninput="calc(this)"></td>
       <td><input class="rec" type="number" value="${e.received||0}" oninput="calc(this)"></td>
-      <td class="net">0</td>
-      <td><button class="btn-red" onclick="deleteCustomer(${c.id})">🗑</button></td>
+      <td class="net" style="font-weight:bold; color:var(--danger);">0</td>
+      <td><button class="btn-red" style="padding: 6px 10px;" onclick="deleteCustomer(${c.id})">🗑️</button></td>
     </tr>`;
   }).join("");
 
-  document.querySelectorAll("tr").forEach(r=>calc(r));
+  // FIX: Only query rows inside the tbody so we don't accidentally try to calc the header row!
+  document.querySelectorAll("#tbody tr").forEach(r=>calc(r));
 }
 
 // CALC
 function calc(el){
-  let tr=el.closest("tr");
-  let rate=+tr.querySelector("input[type=number]").value||0;
+  let tr = el instanceof HTMLElement ? el.closest("tr") : el;
+  if (!tr) return;
 
-  let litres=0;
-  tr.querySelectorAll(".litre-input").forEach(i=>litres+=+i.value||0);
+  let rate = +tr.querySelector(".rate").value || 0;
 
-  let total=litres*rate;
-  let old=+tr.querySelector(".old").value||0;
-  let rec=+tr.querySelector(".rec").value||0;
+  let litres = 0;
+  tr.querySelectorAll(".litre-input").forEach(i => litres += +i.value || 0);
 
-  tr.querySelector(".tl").innerText=litres.toFixed(1);
-  tr.querySelector(".tr").innerText=total.toFixed(2);
-  tr.querySelector(".net").innerText=((old+total)-rec).toFixed(2);
+  let total = litres * rate;
+  let old = +tr.querySelector(".old").value || 0;
+  let rec = +tr.querySelector(".rec").value || 0;
+
+  tr.querySelector(".tl").innerText = litres.toFixed(1);
+  tr.querySelector(".tr").innerText = total.toFixed(2);
+  
+  let netDue = (old + total) - rec;
+  let netEl = tr.querySelector(".net");
+  netEl.innerText = netDue.toFixed(2);
+  
+  // Color coding for net due
+  if(netDue > 0) netEl.style.color = "var(--danger)";
+  else if (netDue < 0) netEl.style.color = "var(--success)";
+  else netEl.style.color = "var(--dark)";
 }
 
 // SAVE
 async function save(){
   loader.style.display="inline";
-  let rows=[...document.querySelectorAll("tr[data-id]")].map(tr=>{
+  let rows=[...document.querySelectorAll("#tbody tr[data-id]")].map(tr=>{
     return {
-      customer_id:tr.dataset.id,
-      rate:+tr.querySelector("input[type=number]").value,
-      old_balance:+tr.querySelector(".old").value,
-      received:+tr.querySelector(".rec").value,
-      days:[...tr.querySelectorAll(".litre-input")].map(i=>+i.value||0)
+      customer_id: tr.dataset.id,
+      rate: +tr.querySelector(".rate").value,
+      qty: +tr.querySelector(".tl").innerText, // FIX: Added missing qty field for backend
+      old_balance: +tr.querySelector(".old").value,
+      received: +tr.querySelector(".rec").value,
+      days: [...tr.querySelectorAll(".litre-input")].map(i=>+i.value||0)
     };
   });
 
-  await fetch("/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({month:month.value,rows})});
+  await fetch("/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({month:monthSelect.value,rows})});
 
   loader.style.display="none";
-  alert("Saved!");
+  showToast("All records saved successfully!", "success");
 }
 
 // EXPORT
 function exportExcel(){
+  showToast("Exporting to Excel...", "success");
   let wb=XLSX.utils.table_to_book(document.getElementById("table"));
-  XLSX.writeFile(wb,"Milk_Report.xlsx");
+  XLSX.writeFile(wb,`Milk_Report_${months[monthSelect.value-1]}.xlsx`);
 }
 
 // INIT
