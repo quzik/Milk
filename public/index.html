@@ -1,790 +1,251 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Milk Management Pro</title>
-  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-  <style>
-    :root {
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
-      --primary-glow: rgba(99, 102, 241, 0.3);
-      --success: #10b981;
-      --success-glow: rgba(16, 185, 129, 0.3);
-      --danger: #ef4444;
-      --danger-glow: rgba(239, 68, 68, 0.3);
-      --warning: #f59e0b;
-      --dark: #1e293b;
-      --glass: rgba(255, 255, 255, 0.7);
-      --glass-border: rgba(255, 255, 255, 0.5);
-      --shadow-soft: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
-      --shadow-glow: 0 0 40px -10px var(--primary-glow);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
-      background-size: 400% 400%;
-      animation: gradientShift 15s ease infinite;
-      color: #334155;
-      min-height: 100vh;
-      opacity: 0;
-      transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    .particles {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      pointer-events: none;
-      overflow: hidden;
-      z-index: 0;
-    }
-    .particle {
-      position: absolute;
-      width: 6px; height: 6px;
-      background: rgba(255,255,255,0.3);
-      border-radius: 50%;
-      animation: float 20s infinite linear;
-    }
-    .particle:nth-child(1) { left: 10%; animation-duration: 25s; animation-delay: 0s; }
-    .particle:nth-child(2) { left: 20%; animation-duration: 30s; animation-delay: 2s; width: 8px; height: 8px; }
-    .particle:nth-child(3) { left: 35%; animation-duration: 22s; animation-delay: 4s; }
-    .particle:nth-child(4) { left: 50%; animation-duration: 28s; animation-delay: 1s; width: 4px; height: 4px; }
-    .particle:nth-child(5) { left: 65%; animation-duration: 26s; animation-delay: 3s; }
-    .particle:nth-child(6) { left: 80%; animation-duration: 32s; animation-delay: 5s; width: 10px; height: 10px; }
-    .particle:nth-child(7) { left: 90%; animation-duration: 24s; animation-delay: 2s; }
-    @keyframes float {
-      0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
-      100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
-    }
-    header {
-      background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(99, 102, 241, 0.9));
-      color: white;
-      padding: 24px;
-      text-align: center;
-      font-size: 26px;
-      font-weight: 700;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-      position: relative;
-      z-index: 10;
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      letter-spacing: 1px;
-    }
-    header::after {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, transparent, var(--primary), var(--success), var(--warning), transparent);
-      background-size: 200% 100%;
-      animation: shimmer 3s linear infinite;
-    }
-    @keyframes shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-    .container { 
-      padding: 24px; 
-      max-width: 1400px; 
-      margin: auto; 
-      position: relative;
-      z-index: 1;
-    }
-    .card {
-      background: var(--glass);
-      padding: 24px;
-      margin-bottom: 24px;
-      border-radius: 20px;
-      box-shadow: var(--shadow-soft), 0 0 0 1px var(--glass-border);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      animation: fadeInUp 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-      opacity: 0;
-      transform: translateY(20px);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-soft), var(--shadow-glow), 0 0 0 1px var(--glass-border);
-    }
-    .card:nth-child(1) { animation-delay: 0.1s; }
-    .card:nth-child(2) { animation-delay: 0.2s; }
-    .card:nth-child(3) { animation-delay: 0.3s; }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(30px) scale(0.98); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    .flex-row { 
-      display: flex; 
-      gap: 14px; 
-      flex-wrap: wrap; 
-      align-items: center; 
-    }
-    input, select {
-      padding: 12px 16px;
-      border: 2px solid rgba(99, 102, 241, 0.1);
-      border-radius: 12px;
-      outline: none;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      background: rgba(255, 255, 255, 0.8);
-      font-size: 14px;
-      color: var(--dark);
-    }
-    input:focus, select:focus { 
-      border-color: var(--primary); 
-      box-shadow: 0 0 0 4px var(--primary-glow), 0 4px 12px rgba(99, 102, 241, 0.15);
-      background: white;
-      transform: translateY(-1px);
-    }
-    input:hover, select:hover {
-      border-color: rgba(99, 102, 241, 0.3);
-    }
-    button {
-      padding: 12px 22px;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 14px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-      letter-spacing: 0.5px;
-    }
-    button::before {
-      content: '';
-      position: absolute;
-      top: 50%; left: 50%;
-      width: 0; height: 0;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.3);
-      transform: translate(-50%, -50%);
-      transition: width 0.6s, height 0.6s;
-    }
-    button:active::before {
-      width: 300px; height: 300px;
-    }
-    button:active { transform: scale(0.96); }
-    .btn-green { 
-      background: linear-gradient(135deg, var(--success), #059669); 
-      color: white; 
-      box-shadow: 0 4px 15px var(--success-glow);
-    }
-    .btn-green:hover { 
-      transform: translateY(-2px); 
-      box-shadow: 0 8px 25px var(--success-glow);
-    }
-    .btn-blue { 
-      background: linear-gradient(135deg, var(--primary), var(--primary-hover)); 
-      color: white; 
-      box-shadow: 0 4px 15px var(--primary-glow);
-    }
-    .btn-blue:hover { 
-      transform: translateY(-2px); 
-      box-shadow: 0 8px 25px var(--primary-glow);
-    }
-    .btn-red { 
-      background: linear-gradient(135deg, var(--danger), #dc2626); 
-      color: white; 
-      box-shadow: 0 4px 15px var(--danger-glow);
-    }
-    .btn-red:hover { 
-      transform: translateY(-2px); 
-      box-shadow: 0 8px 25px var(--danger-glow);
-    }
-    .table-wrapper {
-      overflow-x: auto;
-      max-height: 65vh;
-      border-radius: 16px;
-      border: 1px solid rgba(99, 102, 241, 0.1);
-      box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);
-      background: rgba(255,255,255,0.5);
-    }
-    table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      min-width: 1400px;
-      background: transparent;
-    }
-    th, td {
-      padding: 12px 10px;
-      text-align: center;
-      border-bottom: 1px solid rgba(99, 102, 241, 0.08);
-      white-space: nowrap;
-      transition: all 0.2s ease;
-    }
-    th {
-      background: linear-gradient(135deg, var(--dark), #334155);
-      color: white;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      font-weight: 600;
-      font-size: 13px;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-    }
-    th:first-child { border-radius: 16px 0 0 0; }
-    th:last-child { border-radius: 0 16px 0 0; }
-    tbody tr {
-      animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-      opacity: 0;
-      transition: all 0.2s ease;
-    }
-    tbody tr:nth-child(even) { background: rgba(99, 102, 241, 0.03); }
-    tbody tr:hover {
-      background: rgba(99, 102, 241, 0.08);
-      transform: scale(1.002);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      z-index: 2;
-      position: relative;
-    }
-    @keyframes slideIn { 
-      from { opacity: 0; transform: translateX(-20px) scale(0.98); } 
-      to { opacity: 1; transform: translateX(0) scale(1); } 
-    }
-    .sticky-col {
-      position: sticky;
-      left: 0;
-      background: linear-gradient(90deg, #f8fafc, #f1f5f9);
-      font-weight: 700;
-      z-index: 5;
-      border-right: 2px solid rgba(99, 102, 241, 0.15);
-      color: var(--dark);
-      min-width: 150px;
-    }
-    .litre-input {
-      width: 50px;
-      text-align: center;
-      border: 2px solid rgba(99, 102, 241, 0.1);
-      border-radius: 8px;
-      padding: 6px;
-      font-size: 13px;
-      transition: all 0.2s ease;
-      background: rgba(255,255,255,0.9);
-    }
-    .litre-input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--primary-glow);
-      transform: scale(1.05);
-    }
-    #loginBox {
-      max-width: 420px; 
-      margin: 60px auto; 
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    #loginBox::before {
-      content: '🥛';
-      font-size: 64px;
-      display: block;
-      margin-bottom: 20px;
-      animation: bounce 2s ease infinite;
-    }
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0) rotate(0deg); }
-      25% { transform: translateY(-10px) rotate(-5deg); }
-      75% { transform: translateY(-5px) rotate(5deg); }
-    }
-    #loginBox h2 {
-      margin: 0 0 8px 0;
-      font-size: 28px;
-      background: linear-gradient(135deg, var(--primary), var(--success));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    #loginBox p.subtitle {
-      color: #64748b;
-      margin-bottom: 24px;
-      font-size: 14px;
-    }
-    #loginBox input {
-      width: 85%;
-      margin-bottom: 16px;
-      padding: 14px 18px;
-      font-size: 15px;
-    }
-    #loginBox button {
-      width: 90%;
-      padding: 14px;
-      font-size: 16px;
-      margin-top: 8px;
-    }
-    #toast {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      padding: 16px 28px;
-      background: linear-gradient(135deg, var(--dark), #334155);
-      color: white;
-      border-radius: 16px;
-      display: none;
-      z-index: 1000;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1);
-      font-weight: 500;
-      animation: toastSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    #toast.success { 
-      background: linear-gradient(135deg, var(--success), #059669);
-      box-shadow: 0 10px 40px var(--success-glow);
-    }
-    #toast.error { 
-      background: linear-gradient(135deg, var(--danger), #dc2626);
-      box-shadow: 0 10px 40px var(--danger-glow);
-    }
-    @keyframes toastSlide {
-      from { transform: translateX(100px) scale(0.9); opacity: 0; }
-      to { transform: translateX(0) scale(1); opacity: 1; }
-    }
-    #loader { 
-      display: none; 
-      margin-left: 12px; 
-      font-weight: 600; 
-      color: var(--primary);
-      align-items: center;
-      gap: 8px;
-    }
-    .spinner {
-      width: 18px; height: 18px;
-      border: 2px solid rgba(99, 102, 241, 0.2);
-      border-top-color: var(--primary);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      display: inline-block;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .stat-card {
-      background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
-      padding: 20px;
-      border-radius: 16px;
-      box-shadow: var(--shadow-soft);
-      border: 1px solid rgba(255,255,255,0.5);
-      animation: fadeInUp 0.6s ease forwards;
-      opacity: 0;
-      transition: transform 0.3s ease;
-    }
-    .stat-card:hover { transform: translateY(-4px); }
-    .stat-card:nth-child(1) { animation-delay: 0.1s; border-top: 3px solid var(--primary); }
-    .stat-card:nth-child(2) { animation-delay: 0.2s; border-top: 3px solid var(--success); }
-    .stat-card:nth-child(3) { animation-delay: 0.3s; border-top: 3px solid var(--warning); }
-    .stat-card:nth-child(4) { animation-delay: 0.4s; border-top: 3px solid var(--danger); }
-    .stat-label {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #64748b;
-      margin-bottom: 8px;
-    }
-    .stat-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--dark);
-    }
-    td button {
-      padding: 6px 12px;
-      font-size: 12px;
-      border-radius: 8px;
-    }
-    .net-positive { color: var(--danger); font-weight: 700; }
-    .net-negative { color: var(--success); font-weight: 700; }
-    .net-zero { color: #64748b; font-weight: 600; }
-    @media (max-width: 768px) {
-      header { font-size: 20px; padding: 16px; }
-      .container { padding: 12px; }
-      .card { padding: 16px; }
-      .flex-row { gap: 8px; }
-      input, select, button { width: 100% !important; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Milk Management System</title>
+    <style>
+        :root { --primary: #2563eb; --danger: #dc2626; --bg: #f8fafc; --card: #ffffff; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); margin: 0; color: #1e293b; }
+        .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+        .card { background: var(--card); padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .hidden { display: none; }
+        
+        /* Form Styling */
+        h2 { margin-top: 0; color: #0f172a; }
+        input, select { width: 100%; padding: 0.75rem; margin: 0.5rem 0 1rem; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+        button { cursor: pointer; padding: 0.75rem 1.5rem; border-radius: 6px; border: none; font-weight: 600; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; width: 100%; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-outline { background: transparent; border: 1px solid #cbd5e1; color: #64748b; }
+        
+        /* Dashboard Layout */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .logout-link { color: var(--danger); text-decoration: none; font-size: 0.9rem; cursor: pointer; }
+        
+        /* Table Styling */
+        .table-container { overflow-x: auto; margin-top: 1rem; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th { background: #f1f5f9; text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        .input-small { width: 60px; padding: 4px; margin: 0; }
+        
+        .status-msg { padding: 10px; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .success { background: #dcfce7; color: #166534; }
+    </style>
 </head>
 <body>
-<div class="particles">
-  <div class="particle"></div>
-  <div class="particle"></div>
-  <div class="particle"></div>
-  <div class="particle"></div>
-  <div class="particle"></div>
-  <div class="particle"></div>
-  <div class="particle"></div>
-</div>
-<header>🥛 Milk Management Pro</header>
+
 <div class="container">
-  <div id="loginBox" class="card">
-    <h2>Welcome Back</h2>
-    <p class="subtitle">Sign in to manage your milk records</p>
-    <input id="user" placeholder="Username" autocomplete="username">
-    <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
-    <button class="btn-green" onclick="login()">Sign In →</button>
-    <p id="msg" style="color: var(--danger); margin-top: 14px; font-size: 14px; min-height: 20px;"></p>
-  </div>
-  <div id="app" style="display: none;">
-    <div class="card flex-row" style="justify-content: space-between; align-items: center;">
-      <div>
-        <h3 style="margin: 0; font-size: 22px;">Dashboard</h3>
-        <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px;">Manage customers & track milk deliveries</p>
-      </div>
-      <button class="btn-red" onclick="logout()">Logout</button>
+    <div id="login-view" class="card">
+        <h2>Sign In</h2>
+        <div id="login-error" class="status-msg error hidden"></div>
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Enter username">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="••••••••">
+        <button class="btn-primary" onclick="doLogin()">Login</button>
     </div>
-    <div class="stats-grid" id="statsGrid" style="display: none;">
-      <div class="stat-card">
-        <div class="stat-label">Total Customers</div>
-        <div class="stat-value" id="statCustomers">0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Total Litres</div>
-        <div class="stat-value" id="statLitres">0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Total Amount</div>
-        <div class="stat-value" id="statAmount">₹0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Net Balance</div>
-        <div class="stat-value" id="statNet">₹0</div>
-      </div>
+
+    <div id="app-view" class="hidden">
+        <div class="header">
+            <h2>Milk Dashboard</h2>
+            <div>
+                <span id="user-tag" style="margin-right:15px; font-weight:bold;"></span>
+                <span class="logout-link" onclick="doLogout()">Logout</span>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 1rem; display: flex; gap: 10px; align-items: flex-end;">
+            <div style="flex: 1;">
+                <label>Select Month</label>
+                <input type="month" id="view-month" style="margin:0;">
+            </div>
+            <button class="btn-outline" onclick="loadData()">Load Records</button>
+            <button class="btn-primary" style="width:auto;" onclick="saveData()">Save Changes</button>
+        </div>
+
+        <div class="card">
+            <div id="action-msg" class="status-msg hidden"></div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Qty</th>
+                            <th>Rate</th>
+                            <th>Received</th>
+                            <th>Prev. Bal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entry-table-body">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card" style="margin-top: 2rem;">
+            <h3>Quick Add Customer</h3>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="new-cust-name" placeholder="Name" style="margin:0;">
+                <input type="number" id="new-cust-rate" placeholder="Rate" style="margin:0; width: 100px;">
+                <button class="btn-outline" onclick="addCustomer()">Add</button>
+            </div>
+        </div>
     </div>
-    <div class="card flex-row">
-      <input id="cname" placeholder="Customer Name" style="flex: 1;">
-      <input id="crate" type="number" value="50" placeholder="Rate" style="width: 90px;">
-      <button class="btn-green" onclick="addCustomer()">+ Add Customer</button>
-      <input id="search" placeholder="🔍 Search Name..." oninput="filterTable()" style="margin-left: auto; flex: 1; max-width: 250px;">
-    </div>
-    <div class="card">
-      <div class="flex-row" style="margin-bottom: 20px; flex-wrap: wrap;">
-        <select id="month" onchange="loadData()"></select>
-        <button class="btn-blue" onclick="save()">💾 Save All Records</button>
-        <button class="btn-green" onclick="exportExcel()">📊 Export Excel</button>
-        <span id="loader"><span class="spinner"></span> Processing...</span>
-      </div>
-      <div class="table-wrapper">
-        <table id="table">
-          <thead id="thead"></thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
 </div>
-<div id="toast"></div>
+
 <script>
-  let customers = [];
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const monthSelect = document.getElementById("month");
-  monthNames.forEach((m, i) => {
-    let opt = document.createElement("option");
-    opt.value = i + 1; opt.text = m;
-    monthSelect.appendChild(opt);
-  });
-  monthSelect.value = new Date().getMonth() + 1;
+    // Configuration: Point this to your actual worker URL
+    const API = "https://milk.mezz60606.workers.dev";
+    
+    // Set default month to current
+    document.getElementById('view-month').value = new Date().toISOString().slice(0, 7);
 
-  function showToast(msg, type = 'success') {
-    const t = document.getElementById("toast");
-    t.innerText = msg;
-    t.className = type;
-    t.style.display = "block";
-    t.style.animation = 'none';
-    t.offsetHeight;
-    t.style.animation = 'toastSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-    setTimeout(() => t.style.display = "none", 3500);
-  }
+    // --- Core Logic ---
 
-  async function login() {
-    const user = document.getElementById("user").value.trim();
-    const pass = document.getElementById("pass").value;
-    const msgEl = document.getElementById("msg");
-    if (!user || !pass) {
-      msgEl.innerText = "Please enter both username and password";
-      msgEl.style.animation = 'shake 0.5s ease';
-      return;
+    // 1. Initial Check: Are we logged in?
+    async function checkSession() {
+        try {
+            const res = await fetch(`${API}/customers`, { credentials: "include" });
+            if (res.ok) {
+                const customers = await res.json();
+                showDashboard(customers);
+            } else {
+                showLogin();
+            }
+        } catch (e) { showLogin(); }
     }
-    msgEl.innerText = "";
-    try {
-      const res = await fetch("/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: user, password: pass })
-      });
-      if (res.ok) {
-        showToast("Login successful! Welcome back 👋", "success");
-        setTimeout(() => location.reload(), 800);
-      } else {
-        const data = await res.json().catch(() => ({}));
-        msgEl.innerText = data.error || "Invalid credentials";
-        msgEl.style.animation = 'shake 0.5s ease';
-      }
-    } catch (err) {
-      msgEl.innerText = "Network error. Please try again.";
-    }
-  }
 
-  const shakeStyle = document.createElement('style');
-  shakeStyle.textContent = `
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20% { transform: translateX(-8px); }
-      40% { transform: translateX(8px); }
-      60% { transform: translateX(-4px); }
-      80% { transform: translateX(4px); }
-    }
-  `;
-  document.head.appendChild(shakeStyle);
+    // 2. Login Action
+    async function doLogin() {
+        const u = document.getElementById('username').value;
+        const p = document.getElementById('password').value;
+        const errDiv = document.getElementById('login-error');
 
-  document.getElementById("pass").addEventListener("keypress", (e) => {
-    if (e.key === "Enter") login();
-  });
+        const res = await fetch(`${API}/login`, {
+            method: "POST",
+            body: JSON.stringify({ username: u, password: p }),
+            credentials: "include"
+        });
 
-  async function logout() {
-    try {
-      await fetch("/logout");
-      showToast("Logged out successfully 👋", "success");
-      setTimeout(() => location.reload(), 600);
-    } catch (err) {
-      showToast("Logout failed", "error");
-    }
-  }
-
-  async function loadCustomers() {
-    try {
-      const res = await fetch("/customers");
-      if (!res.ok) return;
-      customers = await res.json();
-      loadData();
-    } catch (err) {
-      showToast("Failed to load customers", "error");
-    }
-  }
-
-  async function addCustomer() {
-    const name = document.getElementById("cname").value.trim();
-    const rate = document.getElementById("crate").value;
-    if (!name) return showToast("Enter a name!", "error");
-    try {
-      const res = await fetch("/customer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, rate })
-      });
-      if (res.ok) {
-        document.getElementById("cname").value = "";
-        showToast("Customer added successfully! ✨");
-        loadCustomers();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        showToast(data.error || "Failed to add customer", "error");
-      }
-    } catch (err) {
-      showToast("Network error", "error");
-    }
-  }
-
-  async function updateCustomer(id, name, rate) {
-    try {
-      const res = await fetch("/customer", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, name, rate })
-      });
-      if (res.ok) {
-        showToast("Updated! ✓");
-      } else {
-        showToast("Update failed", "error");
-      }
-    } catch (err) {
-      showToast("Network error", "error");
-    }
-  }
-
-  async function deleteCustomer(id) {
-    if (!confirm("Delete this customer? This action cannot be undone.")) return;
-    try {
-      const res = await fetch("/customer", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
-      });
-      if (res.ok) {
-        showToast("Customer deleted");
-        loadCustomers();
-      } else {
-        showToast("Delete failed", "error");
-      }
-    } catch (err) {
-      showToast("Network error", "error");
-    }
-  }
-
-  function filterTable() {
-    const val = document.getElementById("search").value.toLowerCase();
-    document.querySelectorAll("#tbody tr").forEach(tr => {
-      const name = tr.querySelector(".sticky-col").innerText.toLowerCase();
-      tr.style.display = name.includes(val) ? "" : "none";
-    });
-  }
-
-  function getDaysInMonth(m) {
-    return new Date(new Date().getFullYear(), m, 0).getDate();
-  }
-
-  function updateStats() {
-    let totalL = 0, totalR = 0, totalNet = 0;
-    document.querySelectorAll("#tbody tr").forEach(tr => {
-      if (tr.style.display === "none") return;
-      totalL += parseFloat(tr.querySelector(".tl").innerText) || 0;
-      totalR += parseFloat(tr.querySelector(".tr").innerText.replace('₹','')) || 0;
-      totalNet += parseFloat(tr.querySelector(".net").innerText.replace('₹','')) || 0;
-    });
-    document.getElementById("statCustomers").innerText = customers.length;
-    document.getElementById("statLitres").innerText = totalL.toFixed(1);
-    document.getElementById("statAmount").innerText = "₹" + totalR.toFixed(2);
-    document.getElementById("statNet").innerText = "₹" + totalNet.toFixed(2);
-    document.getElementById("statNet").style.color = totalNet > 0 ? "var(--danger)" : "var(--success)";
-  }
-
-  async function loadData() {
-    const m = monthSelect.value;
-    try {
-      const res = await fetch(`/load?month=${m}`);
-      const data = await res.json();
-      const dCount = getDaysInMonth(m);
-      let h = `<tr><th>#</th><th class="sticky-col">Name</th><th>Rate</th>`;
-      for (let i = 1; i <= dCount; i++) h += `<th>${i}</th>`;
-      h += `<th>Total L</th><th>Total ₹</th><th>Old</th><th>Rec</th><th>Net</th><th>Del</th></tr>`;
-      document.getElementById("thead").innerHTML = h;
-      
-      document.getElementById("tbody").innerHTML = customers.map((c, idx) => {
-        const entry = data.find(x => x.customer_id == c.id) || {};
-        
-        // Safer array parsing:
-        let daysArr = Array(dCount).fill("");
-        if (entry.days) {
-          try {
-            daysArr = typeof entry.days === 'string' ? JSON.parse(entry.days) : entry.days;
-          } catch (e) {
-            console.error("Failed to parse days data", e);
-          }
+        const data = await res.json();
+        if (data.success) {
+            location.reload(); // Refresh to boot up dashboard
+        } else {
+            errDiv.innerText = data.error || "Login Failed";
+            errDiv.classList.remove('hidden');
         }
+    }
+
+    // 3. Load Customer & Entry Data
+    async function loadData() {
+        const month = document.getElementById('view-month').value;
         
-        let inputs = "";
-        for (let i = 0; i < dCount; i++) {
-          inputs += `<td><input class="litre-input" type="number" step="0.1" value="${daysArr[i] || ""}" oninput="calc(this)"></td>`;
+        // Fetch both customers and existing entries
+        const [custRes, entryRes] = await Promise.all([
+            fetch(`${API}/customers`, { credentials: "include" }),
+            fetch(`${API}/load?month=${month}`, { credentials: "include" })
+        ]);
+
+        if (!custRes.ok) return doLogout();
+
+        const customers = await custRes.json();
+        const entries = await entryRes.json();
+
+        const tbody = document.getElementById('entry-table-body');
+        tbody.innerHTML = "";
+
+        customers.forEach(c => {
+            const e = entries.find(item => item.customer_id === c.id) || {};
+            const row = `
+                <tr data-id="${c.id}">
+                    <td><strong>${c.name}</strong></td>
+                    <td><input type="number" class="input-small qty" value="${e.qty || 0}"></td>
+                    <td><input type="number" class="input-small rate" value="${e.rate || c.default_rate}"></td>
+                    <td><input type="number" class="input-small received" value="${e.received || 0}"></td>
+                    <td><input type="number" class="input-small bal" value="${e.old_balance || 0}"></td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
+    }
+
+    // 4. Save Logic
+    async function saveData() {
+        const month = document.getElementById('view-month').value;
+        const rows = [];
+        
+        document.querySelectorAll('#entry-table-body tr').forEach(tr => {
+            rows.push({
+                customer_id: parseInt(tr.dataset.id),
+                qty: parseFloat(tr.querySelector('.qty').value),
+                rate: parseFloat(tr.querySelector('.rate').value),
+                received: parseFloat(tr.querySelector('.received').value),
+                old_balance: parseFloat(tr.querySelector('.bal').value),
+                days: {} // Placeholder for daily tracking
+            });
+        });
+
+        const res = await fetch(`${API}/save`, {
+            method: "POST",
+            body: JSON.stringify({ month, rows }),
+            credentials: "include"
+        });
+
+        if (res.ok) {
+            notify("Data Saved Successfully!", "success");
+        } else {
+            notify("Error saving data", "error");
         }
+    }
+
+    // 5. Add Customer
+    async function addCustomer() {
+        const name = document.getElementById('new-cust-name').value;
+        const rate = document.getElementById('new-cust-rate').value;
         
-        // Fallback for missing properties: c.rate || 0
-        const defaultRate = c.rate || c.default_rate || 50; 
+        if (!name) return;
+
+        await fetch(`${API}/customer`, {
+            method: "POST",
+            body: JSON.stringify({ name, rate }),
+            credentials: "include"
+        });
         
-        return `<tr data-id="${c.id}" style="animation-delay: ${idx * 0.04}s">
-          <td>${idx + 1}</td>
-          <td contenteditable="true" class="sticky-col" onblur="updateCustomer('${c.id}', this.innerText, ${defaultRate})">${c.name}</td>
-          <td><input type="number" class="rate-in" value="${entry.rate || defaultRate}" style="width:55px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
-          ${inputs}
-          <td class="tl" style="font-weight: 600;">0</td>
-          <td class="tr" style="font-weight: 600;">0</td>
-          <td><input class="old" type="number" value="${entry.old_balance || 0}" style="width:55px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
-          <td><input class="rec" type="number" value="${entry.received || 0}" style="width:55px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
-          <td class="net" style="font-weight: 700; font-size: 15px;">0</td>
-          <td><button class="btn-red" style="padding: 6px 10px;" onclick="deleteCustomer('${c.id}')">🗑️</button></td>
-        </tr>`;
-      }).join("");
-      
-      document.querySelectorAll("#tbody tr").forEach(tr => calc(tr));
-      document.getElementById("statsGrid").style.display = "grid";
-      updateStats();
-    } catch (err) {
-      showToast("Failed to load data", "error");
-    }
-  }
-
-  function calc(el) {
-    const tr = el.tagName === "TR" ? el : el.closest("tr");
-    const rate = +tr.querySelector(".rate-in").value || 0;
-    let totalL = 0;
-    tr.querySelectorAll(".litre-input").forEach(i => totalL += +i.value || 0);
-    const totalR = totalL * rate;
-    const old = +tr.querySelector(".old").value || 0;
-    const rec = +tr.querySelector(".rec").value || 0;
-    const net = (totalR + old) - rec;
-    tr.querySelector(".tl").innerText = totalL.toFixed(1);
-    tr.querySelector(".tr").innerText = "₹" + totalR.toFixed(2);
-    const netEl = tr.querySelector(".net");
-    netEl.innerText = "₹" + net.toFixed(2);
-    netEl.className = "net " + (net > 0 ? "net-positive" : net < 0 ? "net-negative" : "net-zero");
-    updateStats();
-  }
-
-  async function save() {
-    document.getElementById("loader").style.display = "inline-flex";
-    const rows = [...document.querySelectorAll("#tbody tr")].map(tr => ({
-      customer_id: tr.dataset.id,
-      rate: +tr.querySelector(".rate-in").value,
-      qty: +tr.querySelector(".tl").innerText,
-      old_balance: +tr.querySelector(".old").value,
-      received: +tr.querySelector(".rec").value,
-      days: [...tr.querySelectorAll(".litre-input")].map(i => i.value)
-    }));
-    try {
-      const res = await fetch("/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ month: monthSelect.value, rows })
-      });
-      if (res.ok) {
-        showToast("✅ Data saved successfully!");
-      } else {
-        const data = await res.json().catch(() => ({}));
-        showToast(data.error || "Save failed", "error");
-      }
-    } catch (err) {
-      showToast("Network error", "error");
-    } finally {
-      document.getElementById("loader").style.display = "none";
-    }
-  }
-
-  function exportExcel() {
-    try {
-      const wb = XLSX.utils.table_to_book(document.getElementById("table"));
-      XLSX.writeFile(wb, `Milk_Report_${monthNames[monthSelect.value-1]}_${new Date().getFullYear()}.xlsx`);
-      showToast("📊 Excel exported!");
-    } catch (err) {
-      showToast("Export failed", "error");
-    }
-  }
-
-  (async () => {
-    try {
-      const res = await fetch("/customers");
-      if (res.ok) {
-        document.getElementById("loginBox").style.display = "none";
-        document.getElementById("app").style.display = "block";
-        customers = await res.json();
+        document.getElementById('new-cust-name').value = "";
         loadData();
-      }
-    } catch (err) {
-      console.error("Auth init error:", err);
     }
-    document.body.style.opacity = 1;
-  })();
+
+    // 6. Logout
+    async function doLogout() {
+        await fetch(`${API}/logout`, { credentials: "include" });
+        location.reload();
+    }
+
+    // --- UI Helpers ---
+    function showDashboard() {
+        document.getElementById('login-view').classList.add('hidden');
+        document.getElementById('app-view').classList.remove('hidden');
+        loadData();
+    }
+
+    function showLogin() {
+        document.getElementById('login-view').classList.remove('hidden');
+        document.getElementById('app-view').classList.add('hidden');
+    }
+
+    function notify(text, type) {
+        const msg = document.getElementById('action-msg');
+        msg.innerText = text;
+        msg.className = `status-msg ${type}`;
+        setTimeout(() => msg.classList.add('hidden'), 3000);
+    }
+
+    // Startup
+    checkSession();
 </script>
+
 </body>
 </html>
