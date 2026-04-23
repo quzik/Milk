@@ -142,7 +142,9 @@ export default {
         )
           .bind(name.trim(), Number(rate) || 50, uid)
           .run();
-        return json({ id: res.meta.last_row_id });
+        // D1 uses last_row_id (not last_insert_row_id) — fall back to success if undefined
+        const newId = res.meta?.last_row_id ?? res.meta?.last_insert_row_id ?? null;
+        return json({ success: true, id: newId });
       }
 
       if (url.pathname === "/customer" && request.method === "PUT") {
