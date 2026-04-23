@@ -9,7 +9,7 @@ export default {
         headers: { "Content-Type": "application/json" },
       });
 
-    // FIXED: More robust cookie regex to prevent matching substrings of other cookies
+    // Extract cookie value precisely
     const getCookie = (req, name) => {
       const match = (req.headers.get("Cookie") || "").match(
         new RegExp(`(?:^|;\\s*)${name}=([^;]+)`)
@@ -17,6 +17,7 @@ export default {
       return match ? match : null;
     };
 
+    // Verify session from DB
     const getUser = async (req) => {
       const token = getCookie(req, "session");
       if (!token) return null;
@@ -29,19 +30,22 @@ export default {
     };
 
     try {
-      // --- AUTH ---
+      // --- AUTHENTICATION ---
+      
+      // Login Logic
       if (url.pathname === "/login" && request.method === "POST") {
         const { username, password } = await request.json();
         
-        // Note: For production, you should hash passwords using bcrypt/argon2
+        // Find user in DB
         const user = await env.DB.prepare(
           "SELECT * FROM users WHERE username=? AND password=?"
         )
-          .bind(username, password)
+          .bind(username, password.toString())
           .first();
           
         if (!user) return json({ error: "Invalid login" }, 401);
 
+        // Generate Session
         const token = crypto.randomUUID();
         await env.DB.prepare(
           "INSERT INTO sessions (token, user_id) VALUES (?, ?)"
@@ -49,50 +53,51 @@ export default {
           .bind(token, user.id)
           .run();
 
+        // Set Cookie with Path=/ to ensure it works on all endpoints
         return new Response(JSON.stringify({ success: true }), {
           headers: {
-            "Set-Cookie": `session=${token}; Path=/; HttpOnly; Secure; SameSite=Strict`,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Set-Cookie": `session=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=604800`,
           },
         });
       }
 
+      // Logout Logic
       if (url.pathname === "/logout") {
-        // FIXED: Destroy the session in the database, don't just clear the cookie
         const token = getCookie(request, "session");
         if (token) {
           await env.DB.prepare("DELETE FROM sessions WHERE token=?").bind(token).run();
         }
-
         return new Response(JSON.stringify({ success: true }), {
           headers: {
+            "Content-Type": "application/json",
             "Set-Cookie": "session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict",
-            "Content-Type": "application/json"
           },
         });
       }
 
-      // Route Guard
+      // --- ROUTE GUARD ---
+      // Check if user is logged in for all other routes
       const uid = await getUser(request);
+      
+      // If not logged in and not accessing root, return 401
       if (!uid && url.pathname !== "/") {
-        if (
-          url.pathname.startsWith("/customer") ||
-          ["/save", "/load", "/analytics"].includes(url.pathname)
-        ) {
-          return json({ error: "Unauthorized" }, 401);
-        }
+        return json({ error: "Unauthorized" }, 401);
       }
 
-      // --- CUSTOMERS ---
+      // --- CUSTOMER MANAGEMENT ---
+      
+      // Get all customers
       if (url.pathname === "/customers" && request.method === "GET") {
         const { results } = await env.DB.prepare(
-          "SELECT * FROM customers WHERE user_id=?"
+          "SELECT * FROM customers WHERE user_id=? ORDER BY name ASC"
         )
           .bind(uid)
           .all();
         return json(results);
       }
 
+      // Add customer
       if (url.pathname === "/customer" && request.method === "POST") {
         const { name, rate } = await request.json();
         const res = await env.DB.prepare(
@@ -103,21 +108,7 @@ export default {
         return json({ id: res.meta.last_row_id });
       }
 
-      if (url.pathname === "/customer" && request.method === "DELETE") {
-        const { id } = await request.json();
-        await env.DB.prepare(
-          "DELETE FROM customers WHERE id=? AND user_id=?"
-        )
-          .bind(id, uid)
-          .run();
-        await env.DB.prepare(
-          "DELETE FROM entries WHERE customer_id=?"
-        )
-          .bind(id)
-          .run();
-        return json({ success: true });
-      }
-
+      // Update customer
       if (url.pathname === "/customer" && request.method === "PUT") {
         const { id, name, rate } = await request.json();
         await env.DB.prepare(
@@ -128,7 +119,19 @@ export default {
         return json({ success: true });
       }
 
-      // --- ENTRIES ---
+      // Delete customer
+      if (url.pathname === "/customer" && request.method === "DELETE") {
+        const { id } = await request.json();
+        // Delete the customer
+        await env.DB.prepare("DELETE FROM customers WHERE id=? AND user_id=?").bind(id, uid).run();
+        // Cascade delete their entries
+        await env.DB.prepare("DELETE FROM entries WHERE customer_id=?").bind(id).run();
+        return json({ success: true });
+      }
+
+      // --- DATA ENTRY MANAGEMENT ---
+
+      // Load entries for specific month
       if (url.pathname === "/load" && request.method === "GET") {
         const month = url.searchParams.get("month");
         const { results } = await env.DB.prepare(
@@ -141,17 +144,18 @@ export default {
         return json(results);
       }
 
+      // Save/Sync records
       if (url.pathname === "/save" && request.method === "POST") {
         const { month, rows } = await request.json();
         
-        // Delete existing entries for this month
+        // 1. Delete current entries for this month for this user's customers
         await env.DB.prepare(
           "DELETE FROM entries WHERE month=? AND customer_id IN (SELECT id FROM customers WHERE user_id=?)"
         )
           .bind(month, uid)
           .run();
 
-        // FIXED: Cloudflare D1 crashes if you pass an empty array to env.DB.batch()
+        // 2. Insert new data (Batch operation)
         if (rows && rows.length > 0) {
           const stmt = env.DB.prepare(
             "INSERT INTO entries (customer_id, month, qty, rate, days, old_balance, received) VALUES (?, ?, ?, ?, ?, ?, ?)"
@@ -160,11 +164,11 @@ export default {
             stmt.bind(
               r.customer_id,
               month,
-              r.qty,
-              r.rate,
+              r.qty || 0,
+              r.rate || 0,
               JSON.stringify(r.days),
-              r.old_balance,
-              r.received
+              r.old_balance || 0,
+              r.received || 0
             )
           );
           await env.DB.batch(batch);
@@ -173,21 +177,7 @@ export default {
         return json({ success: true });
       }
 
-      // --- ANALYTICS ---
-      if (url.pathname === "/analytics" && request.method === "GET") {
-        const { results } = await env.DB.prepare(
-          `SELECT e.month, SUM(e.qty*e.rate) as revenue
-           FROM entries e
-           JOIN customers c ON e.customer_id=c.id
-           WHERE c.user_id=?
-           GROUP BY e.month`
-        )
-          .bind(uid)
-          .all();
-        return json(results);
-      }
-
-      // Serve static frontend assets (if using Cloudflare Pages or Asset Bindings)
+      // --- STATIC ASSETS ---
       if (env.ASSETS) {
         return env.ASSETS.fetch(request);
       }
@@ -196,8 +186,7 @@ export default {
       
     } catch (err) {
       console.error("Worker Error:", err);
-      // Ensure frontend can parse error correctly
-      return json({ error: "Internal Server Error", details: err.message }, 500);
+      return json({ error: "Server Error", details: err.message }, 500);
     }
   },
 };
