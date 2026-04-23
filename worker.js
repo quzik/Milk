@@ -138,11 +138,10 @@ export default {
         if (!name?.trim()) return json({ error: "Name is required" }, 400);
 
         const res = await env.DB.prepare(
-          "INSERT INTO customers (name, default_rate, user_id) VALUES (?, ?, ?)"
+          "INSERT INTO customers (name, user_id) VALUES (?, ?)"
         )
-          .bind(name.trim(), Number(rate) || 50, uid)
+          .bind(name.trim(), uid)
           .run();
-        // D1 uses last_row_id (not last_insert_row_id) — fall back to success if undefined
         const newId = res.meta?.last_row_id ?? res.meta?.last_insert_row_id ?? null;
         return json({ success: true, id: newId });
       }
@@ -154,9 +153,9 @@ export default {
         if (!id) return json({ error: "Customer id is required" }, 400);
 
         await env.DB.prepare(
-          "UPDATE customers SET name = ?, default_rate = ? WHERE id = ? AND user_id = ?"
+          "UPDATE customers SET name = ? WHERE id = ? AND user_id = ?"
         )
-          .bind(name, Number(rate) || 50, id, uid)
+          .bind(name, id, uid)
           .run();
         return json({ success: true });
       }
