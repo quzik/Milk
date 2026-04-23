@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Milk Management Pro</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <style>
     :root {
@@ -672,31 +671,42 @@
       for (let i = 1; i <= dCount; i++) h += `<th>${i}</th>`;
       h += `<th>Total L</th><th>Total ₹</th><th>Old</th><th>Rec</th><th>Net</th><th>Del</th></tr>`;
       document.getElementById("thead").innerHTML = h;
+      
       document.getElementById("tbody").innerHTML = customers.map((c, idx) => {
         const entry = data.find(x => x.customer_id == c.id) || {};
-        let daysArr;
-        try {
-          daysArr = entry.days ? JSON.parse(entry.days) : Array(dCount).fill("");
-        } catch (e) {
-          daysArr = Array(dCount).fill("");
+        
+        // Safer array parsing:
+        let daysArr = Array(dCount).fill("");
+        if (entry.days) {
+          try {
+            daysArr = typeof entry.days === 'string' ? JSON.parse(entry.days) : entry.days;
+          } catch (e) {
+            console.error("Failed to parse days data", e);
+          }
         }
+        
         let inputs = "";
         for (let i = 0; i < dCount; i++) {
           inputs += `<td><input class="litre-input" type="number" step="0.1" value="${daysArr[i] || ""}" oninput="calc(this)"></td>`;
         }
+        
+        // Fallback for missing properties: c.rate || 0
+        const defaultRate = c.rate || c.default_rate || 50; 
+        
         return `<tr data-id="${c.id}" style="animation-delay: ${idx * 0.04}s">
           <td>${idx + 1}</td>
-          <td contenteditable="true" class="sticky-col" onblur="updateCustomer(${c.id}, this.innerText, ${c.default_rate})">${c.name}</td>
-          <td><input type="number" class="rate-in" value="${entry.rate || c.default_rate}" style="width:55px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
+          <td contenteditable="true" class="sticky-col" onblur="updateCustomer('${c.id}', this.innerText, ${defaultRate})">${c.name}</td>
+          <td><input type="number" class="rate-in" value="${entry.rate || defaultRate}" style="width:55px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
           ${inputs}
           <td class="tl" style="font-weight: 600;">0</td>
           <td class="tr" style="font-weight: 600;">0</td>
           <td><input class="old" type="number" value="${entry.old_balance || 0}" style="width:55px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
           <td><input class="rec" type="number" value="${entry.received || 0}" style="width:55px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
           <td class="net" style="font-weight: 700; font-size: 15px;">0</td>
-          <td><button class="btn-red" style="padding: 6px 10px;" onclick="deleteCustomer(${c.id})">🗑️</button></td>
+          <td><button class="btn-red" style="padding: 6px 10px;" onclick="deleteCustomer('${c.id}')">🗑️</button></td>
         </tr>`;
       }).join("");
+      
       document.querySelectorAll("#tbody tr").forEach(tr => calc(tr));
       document.getElementById("statsGrid").style.display = "grid";
       updateStats();
