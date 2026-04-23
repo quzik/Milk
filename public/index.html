@@ -21,9 +21,8 @@
       --shadow-soft: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
       --shadow-glow: 0 0 40px -10px var(--primary-glow);
     }
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      margin: 0;
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
       background-size: 400% 400%;
@@ -108,22 +107,88 @@
       box-shadow: var(--shadow-soft), 0 0 0 1px var(--glass-border);
       backdrop-filter: blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card-animate {
       animation: fadeInUp 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
       opacity: 0;
       transform: translateY(20px);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     .card:hover {
       transform: translateY(-2px);
       box-shadow: var(--shadow-soft), var(--shadow-glow), 0 0 0 1px var(--glass-border);
     }
-    .card:nth-child(1) { animation-delay: 0.1s; }
-    .card:nth-child(2) { animation-delay: 0.2s; }
-    .card:nth-child(3) { animation-delay: 0.3s; }
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(30px) scale(0.98); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
+    /* Login box transition */
+    #loginBox {
+      max-width: 420px; 
+      margin: 60px auto; 
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #loginBox.hide-login {
+      opacity: 0;
+      transform: scale(0.9) translateY(-20px);
+      pointer-events: none;
+    }
+    #loginBox::before {
+      content: '🥛';
+      font-size: 64px;
+      display: block;
+      margin-bottom: 20px;
+      animation: bounce 2s ease infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      25% { transform: translateY(-10px) rotate(-5deg); }
+      75% { transform: translateY(-5px) rotate(5deg); }
+    }
+    #loginBox h2 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+      background: linear-gradient(135deg, var(--primary), var(--success));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    #loginBox p.subtitle {
+      color: #64748b;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    #loginBox input {
+      width: 85%;
+      margin-bottom: 16px;
+      padding: 14px 18px;
+      font-size: 15px;
+    }
+    #loginBox button {
+      width: 90%;
+      padding: 14px;
+      font-size: 16px;
+      margin-top: 8px;
+    }
+    /* App show/hide */
+    #app {
+      display: none;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #app.show-app {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    /* Stagger app cards */
+    #app .card:nth-child(1) { animation: fadeInUp 0.5s 0.1s cubic-bezier(0.4,0,0.2,1) both; }
+    #app .card:nth-child(2) { animation: fadeInUp 0.5s 0.2s cubic-bezier(0.4,0,0.2,1) both; }
+    #app .card:nth-child(3) { animation: fadeInUp 0.5s 0.3s cubic-bezier(0.4,0,0.2,1) both; }
     .flex-row { 
       display: flex; 
       gap: 14px; 
@@ -175,12 +240,17 @@
       width: 300px; height: 300px;
     }
     button:active { transform: scale(0.96); }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
     .btn-green { 
       background: linear-gradient(135deg, var(--success), #059669); 
       color: white; 
       box-shadow: 0 4px 15px var(--success-glow);
     }
-    .btn-green:hover { 
+    .btn-green:hover:not(:disabled) { 
       transform: translateY(-2px); 
       box-shadow: 0 8px 25px var(--success-glow);
     }
@@ -189,7 +259,7 @@
       color: white; 
       box-shadow: 0 4px 15px var(--primary-glow);
     }
-    .btn-blue:hover { 
+    .btn-blue:hover:not(:disabled) { 
       transform: translateY(-2px); 
       box-shadow: 0 8px 25px var(--primary-glow);
     }
@@ -198,9 +268,24 @@
       color: white; 
       box-shadow: 0 4px 15px var(--danger-glow);
     }
-    .btn-red:hover { 
+    .btn-red:hover:not(:disabled) { 
       transform: translateY(-2px); 
       box-shadow: 0 8px 25px var(--danger-glow);
+    }
+    /* Login button loading state */
+    .btn-loading {
+      pointer-events: none;
+    }
+    .btn-loading::after {
+      content: '';
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.5);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-left: 8px;
+      vertical-align: middle;
     }
     .table-wrapper {
       overflow-x: auto;
@@ -279,50 +364,6 @@
       box-shadow: 0 0 0 3px var(--primary-glow);
       transform: scale(1.05);
     }
-    #loginBox {
-      max-width: 420px; 
-      margin: 60px auto; 
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    #loginBox::before {
-      content: '🥛';
-      font-size: 64px;
-      display: block;
-      margin-bottom: 20px;
-      animation: bounce 2s ease infinite;
-    }
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0) rotate(0deg); }
-      25% { transform: translateY(-10px) rotate(-5deg); }
-      75% { transform: translateY(-5px) rotate(5deg); }
-    }
-    #loginBox h2 {
-      margin: 0 0 8px 0;
-      font-size: 28px;
-      background: linear-gradient(135deg, var(--primary), var(--success));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    #loginBox p.subtitle {
-      color: #64748b;
-      margin-bottom: 24px;
-      font-size: 14px;
-    }
-    #loginBox input {
-      width: 85%;
-      margin-bottom: 16px;
-      padding: 14px 18px;
-      font-size: 15px;
-    }
-    #loginBox button {
-      width: 90%;
-      padding: 14px;
-      font-size: 16px;
-      margin-top: 8px;
-    }
     #toast {
       position: fixed;
       bottom: 30px;
@@ -369,19 +410,19 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .stats-grid {
-      display: grid;
+      display: none;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 16px;
       margin-bottom: 24px;
     }
+    .stats-grid.visible { display: grid; }
     .stat-card {
       background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
       padding: 20px;
       border-radius: 16px;
       box-shadow: var(--shadow-soft);
       border: 1px solid rgba(255,255,255,0.5);
-      animation: fadeInUp 0.6s ease forwards;
-      opacity: 0;
+      animation: fadeInUp 0.6s ease both;
       transition: transform 0.3s ease;
     }
     .stat-card:hover { transform: translateY(-4px); }
@@ -409,6 +450,13 @@
     .net-positive { color: var(--danger); font-weight: 700; }
     .net-negative { color: var(--success); font-weight: 700; }
     .net-zero { color: #64748b; font-weight: 600; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
     @media (max-width: 768px) {
       header { font-size: 20px; padding: 16px; }
       .container { padding: 12px; }
@@ -434,11 +482,13 @@
     <h2>Welcome Back</h2>
     <p class="subtitle">Sign in to manage your milk records</p>
     <input id="user" placeholder="Username" autocomplete="username">
+    <br>
     <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
-    <button class="btn-green" onclick="login()">Sign In →</button>
+    <br>
+    <button id="loginBtn" class="btn-green" onclick="login()">Sign In →</button>
     <p id="msg" style="color: var(--danger); margin-top: 14px; font-size: 14px; min-height: 20px;"></p>
   </div>
-  <div id="app" style="display: none;">
+  <div id="app">
     <div class="card flex-row" style="justify-content: space-between; align-items: center;">
       <div>
         <h3 style="margin: 0; font-size: 22px;">Dashboard</h3>
@@ -446,7 +496,7 @@
       </div>
       <button class="btn-red" onclick="logout()">Logout</button>
     </div>
-    <div class="stats-grid" id="statsGrid" style="display: none;">
+    <div class="stats-grid" id="statsGrid">
       <div class="stat-card">
         <div class="stat-label">Total Customers</div>
         <div class="stat-value" id="statCustomers">0</div>
@@ -489,7 +539,7 @@
 <div id="toast"></div>
 <script>
   let customers = [];
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   const monthSelect = document.getElementById("month");
   monthNames.forEach((m, i) => {
     let opt = document.createElement("option");
@@ -498,75 +548,137 @@
   });
   monthSelect.value = new Date().getMonth() + 1;
 
+  // ─── SHOW / HIDE helpers ───────────────────────────────────────────────────
+  function showApp() {
+    const loginBox = document.getElementById("loginBox");
+    const app = document.getElementById("app");
+
+    // Animate login box out
+    loginBox.classList.add("hide-login");
+
+    setTimeout(() => {
+      loginBox.style.display = "none";
+
+      // Reveal app with animation
+      app.style.display = "block";
+      // Force reflow so transition fires
+      app.offsetHeight;
+      app.classList.add("show-app");
+    }, 400);
+  }
+
+  function showLogin() {
+    const loginBox = document.getElementById("loginBox");
+    const app = document.getElementById("app");
+
+    app.classList.remove("show-app");
+    setTimeout(() => {
+      app.style.display = "none";
+      loginBox.style.display = "";
+      loginBox.classList.remove("hide-login");
+      document.getElementById("user").value = "";
+      document.getElementById("pass").value = "";
+      document.getElementById("msg").innerText = "";
+    }, 400);
+  }
+
+  // ─── TOAST ─────────────────────────────────────────────────────────────────
   function showToast(msg, type = 'success') {
     const t = document.getElementById("toast");
     t.innerText = msg;
     t.className = type;
     t.style.display = "block";
     t.style.animation = 'none';
-    t.offsetHeight;
+    t.offsetHeight; // reflow
     t.style.animation = 'toastSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
     setTimeout(() => t.style.display = "none", 3500);
   }
 
+  // ─── LOGIN ──────────────────────────────────────────────────────────────────
   async function login() {
     const user = document.getElementById("user").value.trim();
     const pass = document.getElementById("pass").value;
     const msgEl = document.getElementById("msg");
+    const btn = document.getElementById("loginBtn");
+
     if (!user || !pass) {
       msgEl.innerText = "Please enter both username and password";
+      msgEl.style.animation = 'none';
+      msgEl.offsetHeight;
       msgEl.style.animation = 'shake 0.5s ease';
       return;
     }
+
     msgEl.innerText = "";
+    btn.disabled = true;
+    btn.classList.add("btn-loading");
+    btn.innerText = "Signing in";
+
     try {
       const res = await fetch("/login", {
         method: "POST",
+        credentials: "include",           // ← CRITICAL: send & receive cookies cross-origin
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: user, password: pass })
       });
+
       if (res.ok) {
+        // ✅ FIX: Don't reload — just show the app directly
         showToast("Login successful! Welcome back 👋", "success");
-        setTimeout(() => location.reload(), 800);
+        await loadCustomersAndShow();
       } else {
         const data = await res.json().catch(() => ({}));
         msgEl.innerText = data.error || "Invalid credentials";
+        msgEl.style.animation = 'none';
+        msgEl.offsetHeight;
         msgEl.style.animation = 'shake 0.5s ease';
       }
     } catch (err) {
       msgEl.innerText = "Network error. Please try again.";
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove("btn-loading");
+      btn.innerText = "Sign In →";
     }
   }
 
-  const shakeStyle = document.createElement('style');
-  shakeStyle.textContent = `
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20% { transform: translateX(-8px); }
-      40% { transform: translateX(8px); }
-      60% { transform: translateX(-4px); }
-      80% { transform: translateX(4px); }
+  // Load customers then reveal app (used after login and on initial auth-check)
+  async function loadCustomersAndShow() {
+    try {
+      const res = await fetch("/customers", { credentials: "include" });
+      if (!res.ok) return false;
+      customers = await res.json();
+      showApp();
+      loadData();
+      return true;
+    } catch (err) {
+      return false;
     }
-  `;
-  document.head.appendChild(shakeStyle);
+  }
 
-  document.getElementById("pass").addEventListener("keypress", (e) => {
-    if (e.key === "Enter") login();
-  });
-
+  // ─── LOGOUT ─────────────────────────────────────────────────────────────────
   async function logout() {
     try {
-      await fetch("/logout");
+      await fetch("/logout", { credentials: "include" });
       showToast("Logged out successfully 👋", "success");
-      setTimeout(() => location.reload(), 600);
+      setTimeout(() => showLogin(), 600);
     } catch (err) {
       showToast("Logout failed", "error");
     }
   }
 
+  // Enter key on password field
+  document.getElementById("pass").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") login();
+  });
+  document.getElementById("user").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") document.getElementById("pass").focus();
+  });
+
+  // ─── CUSTOMERS ──────────────────────────────────────────────────────────────
   async function loadCustomers() {
     try {
-      const res = await fetch("/customers");
+      const res = await fetch("/customers", { credentials: "include" });
       if (!res.ok) return;
       customers = await res.json();
       loadData();
@@ -582,6 +694,7 @@
     try {
       const res = await fetch("/customer", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, rate })
       });
@@ -602,6 +715,7 @@
     try {
       const res = await fetch("/customer", {
         method: "PUT",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, name, rate })
       });
@@ -620,6 +734,7 @@
     try {
       const res = await fetch("/customer", {
         method: "DELETE",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id })
       });
@@ -634,12 +749,14 @@
     }
   }
 
+  // ─── TABLE & CALCULATIONS ───────────────────────────────────────────────────
   function filterTable() {
     const val = document.getElementById("search").value.toLowerCase();
     document.querySelectorAll("#tbody tr").forEach(tr => {
-      const name = tr.querySelector(".sticky-col").innerText.toLowerCase();
+      const name = tr.querySelector(".sticky-col")?.innerText.toLowerCase() || "";
       tr.style.display = name.includes(val) ? "" : "none";
     });
+    updateStats();
   }
 
   function getDaysInMonth(m) {
@@ -650,9 +767,9 @@
     let totalL = 0, totalR = 0, totalNet = 0;
     document.querySelectorAll("#tbody tr").forEach(tr => {
       if (tr.style.display === "none") return;
-      totalL += parseFloat(tr.querySelector(".tl").innerText) || 0;
-      totalR += parseFloat(tr.querySelector(".tr").innerText.replace('₹','')) || 0;
-      totalNet += parseFloat(tr.querySelector(".net").innerText.replace('₹','')) || 0;
+      totalL += parseFloat(tr.querySelector(".tl")?.innerText) || 0;
+      totalR += parseFloat(tr.querySelector(".tr")?.innerText.replace('₹','')) || 0;
+      totalNet += parseFloat(tr.querySelector(".net")?.innerText.replace('₹','')) || 0;
     });
     document.getElementById("statCustomers").innerText = customers.length;
     document.getElementById("statLitres").innerText = totalL.toFixed(1);
@@ -664,18 +781,16 @@
   async function loadData() {
     const m = monthSelect.value;
     try {
-      const res = await fetch(`/load?month=${m}`);
+      const res = await fetch(`/load?month=${m}`, { credentials: "include" });
       const data = await res.json();
       const dCount = getDaysInMonth(m);
       let h = `<tr><th>#</th><th class="sticky-col">Name</th><th>Rate</th>`;
       for (let i = 1; i <= dCount; i++) h += `<th>${i}</th>`;
       h += `<th>Total L</th><th>Total ₹</th><th>Old</th><th>Rec</th><th>Net</th><th>Del</th></tr>`;
       document.getElementById("thead").innerHTML = h;
-      
+
       document.getElementById("tbody").innerHTML = customers.map((c, idx) => {
         const entry = data.find(x => x.customer_id == c.id) || {};
-        
-        // Safer array parsing:
         let daysArr = Array(dCount).fill("");
         if (entry.days) {
           try {
@@ -684,31 +799,27 @@
             console.error("Failed to parse days data", e);
           }
         }
-        
         let inputs = "";
         for (let i = 0; i < dCount; i++) {
           inputs += `<td><input class="litre-input" type="number" step="0.1" value="${daysArr[i] || ""}" oninput="calc(this)"></td>`;
         }
-        
-        // Fallback for missing properties: c.rate || 0
-        const defaultRate = c.rate || c.default_rate || 50; 
-        
+        const defaultRate = c.rate || c.default_rate || 50;
         return `<tr data-id="${c.id}" style="animation-delay: ${idx * 0.04}s">
           <td>${idx + 1}</td>
           <td contenteditable="true" class="sticky-col" onblur="updateCustomer('${c.id}', this.innerText, ${defaultRate})">${c.name}</td>
           <td><input type="number" class="rate-in" value="${entry.rate || defaultRate}" style="width:55px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
           ${inputs}
           <td class="tl" style="font-weight: 600;">0</td>
-          <td class="tr" style="font-weight: 600;">0</td>
+          <td class="tr" style="font-weight: 600;">₹0</td>
           <td><input class="old" type="number" value="${entry.old_balance || 0}" style="width:55px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
           <td><input class="rec" type="number" value="${entry.received || 0}" style="width:55px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
-          <td class="net" style="font-weight: 700; font-size: 15px;">0</td>
+          <td class="net" style="font-weight: 700; font-size: 15px;">₹0</td>
           <td><button class="btn-red" style="padding: 6px 10px;" onclick="deleteCustomer('${c.id}')">🗑️</button></td>
         </tr>`;
       }).join("");
-      
+
       document.querySelectorAll("#tbody tr").forEach(tr => calc(tr));
-      document.getElementById("statsGrid").style.display = "grid";
+      document.getElementById("statsGrid").classList.add("visible");
       updateStats();
     } catch (err) {
       showToast("Failed to load data", "error");
@@ -717,34 +828,39 @@
 
   function calc(el) {
     const tr = el.tagName === "TR" ? el : el.closest("tr");
-    const rate = +tr.querySelector(".rate-in").value || 0;
+    if (!tr) return;
+    const rate = +tr.querySelector(".rate-in")?.value || 0;
     let totalL = 0;
     tr.querySelectorAll(".litre-input").forEach(i => totalL += +i.value || 0);
     const totalR = totalL * rate;
-    const old = +tr.querySelector(".old").value || 0;
-    const rec = +tr.querySelector(".rec").value || 0;
+    const old = +tr.querySelector(".old")?.value || 0;
+    const rec = +tr.querySelector(".rec")?.value || 0;
     const net = (totalR + old) - rec;
-    tr.querySelector(".tl").innerText = totalL.toFixed(1);
-    tr.querySelector(".tr").innerText = "₹" + totalR.toFixed(2);
+    if (tr.querySelector(".tl")) tr.querySelector(".tl").innerText = totalL.toFixed(1);
+    if (tr.querySelector(".tr")) tr.querySelector(".tr").innerText = "₹" + totalR.toFixed(2);
     const netEl = tr.querySelector(".net");
-    netEl.innerText = "₹" + net.toFixed(2);
-    netEl.className = "net " + (net > 0 ? "net-positive" : net < 0 ? "net-negative" : "net-zero");
+    if (netEl) {
+      netEl.innerText = "₹" + net.toFixed(2);
+      netEl.className = "net " + (net > 0 ? "net-positive" : net < 0 ? "net-negative" : "net-zero");
+    }
     updateStats();
   }
 
+  // ─── SAVE ────────────────────────────────────────────────────────────────────
   async function save() {
     document.getElementById("loader").style.display = "inline-flex";
     const rows = [...document.querySelectorAll("#tbody tr")].map(tr => ({
       customer_id: tr.dataset.id,
-      rate: +tr.querySelector(".rate-in").value,
-      qty: +tr.querySelector(".tl").innerText,
-      old_balance: +tr.querySelector(".old").value,
-      received: +tr.querySelector(".rec").value,
+      rate: +tr.querySelector(".rate-in")?.value,
+      qty: +tr.querySelector(".tl")?.innerText,
+      old_balance: +tr.querySelector(".old")?.value,
+      received: +tr.querySelector(".rec")?.value,
       days: [...tr.querySelectorAll(".litre-input")].map(i => i.value)
     }));
     try {
       const res = await fetch("/save", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ month: monthSelect.value, rows })
       });
@@ -761,6 +877,7 @@
     }
   }
 
+  // ─── EXPORT ──────────────────────────────────────────────────────────────────
   function exportExcel() {
     try {
       const wb = XLSX.utils.table_to_book(document.getElementById("table"));
@@ -771,18 +888,21 @@
     }
   }
 
+  // ─── INIT: check if already logged in ────────────────────────────────────────
   (async () => {
     try {
-      const res = await fetch("/customers");
+      // ✅ FIX: credentials:"include" so browser sends the session cookie
+      const res = await fetch("/customers", { credentials: "include" });
       if (res.ok) {
-        document.getElementById("loginBox").style.display = "none";
-        document.getElementById("app").style.display = "block";
         customers = await res.json();
+        showApp();
         loadData();
       }
+      // If not ok → stay on login page (default)
     } catch (err) {
       console.error("Auth init error:", err);
     }
+    // Fade in page after auth check
     document.body.style.opacity = 1;
   })();
 </script>
