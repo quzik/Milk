@@ -2,17 +2,19 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // Standardized JSON response helper
     const json = (data, status = 200) =>
       new Response(JSON.stringify(data), {
         status,
         headers: { "Content-Type": "application/json" },
       });
 
+    // FIXED: More robust cookie regex to prevent matching substrings of other cookies
     const getCookie = (req, name) => {
       const match = (req.headers.get("Cookie") || "").match(
-        new RegExp(`${name}=([^;]+)`)
+        new RegExp(`(?:^|;\\s*)${name}=([^;]+)`)
       );
-      return match ? match[1] : null;
+      return match ? match : null;
     };
 
     const getUser = async (req) => {
@@ -30,11 +32,14 @@ export default {
       // --- AUTH ---
       if (url.pathname === "/login" && request.method === "POST") {
         const { username, password } = await request.json();
+        
+        // Note: For production, you should hash passwords using bcrypt/argon2
         const user = await env.DB.prepare(
           "SELECT * FROM users WHERE username=? AND password=?"
         )
           .bind(username, password)
           .first();
+          
         if (!user) return json({ error: "Invalid login" }, 401);
 
         const token = crypto.randomUUID();
@@ -47,30 +52,39 @@ export default {
         return new Response(JSON.stringify({ success: true }), {
           headers: {
             "Set-Cookie": `session=${token}; Path=/; HttpOnly; Secure; SameSite=Strict`,
+            "Content-Type": "application/json"
           },
         });
       }
 
       if (url.pathname === "/logout") {
+        // FIXED: Destroy the session in the database, don't just clear the cookie
+        const token = getCookie(request, "session");
+        if (token) {
+          await env.DB.prepare("DELETE FROM sessions WHERE token=?").bind(token).run();
+        }
+
         return new Response(JSON.stringify({ success: true }), {
           headers: {
-            "Set-Cookie":
-              "session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict",
+            "Set-Cookie": "session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict",
+            "Content-Type": "application/json"
           },
         });
       }
 
+      // Route Guard
       const uid = await getUser(request);
       if (!uid && url.pathname !== "/") {
         if (
           url.pathname.startsWith("/customer") ||
           ["/save", "/load", "/analytics"].includes(url.pathname)
-        )
+        ) {
           return json({ error: "Unauthorized" }, 401);
+        }
       }
 
       // --- CUSTOMERS ---
-      if (url.pathname === "/customers") {
+      if (url.pathname === "/customers" && request.method === "GET") {
         const { results } = await env.DB.prepare(
           "SELECT * FROM customers WHERE user_id=?"
         )
@@ -115,11 +129,10 @@ export default {
       }
 
       // --- ENTRIES ---
-      if (url.pathname === "/load") {
+      if (url.pathname === "/load" && request.method === "GET") {
         const month = url.searchParams.get("month");
         const { results } = await env.DB.prepare(
-          `SELECT e.* 
-           FROM entries e 
+          `SELECT e.* FROM entries e 
            JOIN customers c ON e.customer_id=c.id 
            WHERE e.month=? AND c.user_id=?`
         )
@@ -130,6 +143,7 @@ export default {
 
       if (url.pathname === "/save" && request.method === "POST") {
         const { month, rows } = await request.json();
+        
         // Delete existing entries for this month
         await env.DB.prepare(
           "DELETE FROM entries WHERE month=? AND customer_id IN (SELECT id FROM customers WHERE user_id=?)"
@@ -137,26 +151,30 @@ export default {
           .bind(month, uid)
           .run();
 
-        const stmt = env.DB.prepare(
-          "INSERT INTO entries (customer_id, month, qty, rate, days, old_balance, received) VALUES (?, ?, ?, ?, ?, ?, ?)"
-        );
-        const batch = rows.map((r) =>
-          stmt.bind(
-            r.customer_id,
-            month,
-            r.qty,
-            r.rate,
-            JSON.stringify(r.days),
-            r.old_balance,
-            r.received
-          )
-        );
-        await env.DB.batch(batch);
+        // FIXED: Cloudflare D1 crashes if you pass an empty array to env.DB.batch()
+        if (rows && rows.length > 0) {
+          const stmt = env.DB.prepare(
+            "INSERT INTO entries (customer_id, month, qty, rate, days, old_balance, received) VALUES (?, ?, ?, ?, ?, ?, ?)"
+          );
+          const batch = rows.map((r) =>
+            stmt.bind(
+              r.customer_id,
+              month,
+              r.qty,
+              r.rate,
+              JSON.stringify(r.days),
+              r.old_balance,
+              r.received
+            )
+          );
+          await env.DB.batch(batch);
+        }
+        
         return json({ success: true });
       }
 
       // --- ANALYTICS ---
-      if (url.pathname === "/analytics") {
+      if (url.pathname === "/analytics" && request.method === "GET") {
         const { results } = await env.DB.prepare(
           `SELECT e.month, SUM(e.qty*e.rate) as revenue
            FROM entries e
@@ -169,10 +187,17 @@ export default {
         return json(results);
       }
 
-      // Serve assets if not API
-      return env.ASSETS.fetch(request);
+      // Serve static frontend assets (if using Cloudflare Pages or Asset Bindings)
+      if (env.ASSETS) {
+        return env.ASSETS.fetch(request);
+      }
+      
+      return json({ error: "Not Found" }, 404);
+      
     } catch (err) {
-      return json({ error: err.toString() }, 500);
+      console.error("Worker Error:", err);
+      // Ensure frontend can parse error correctly
+      return json({ error: "Internal Server Error", details: err.message }, 500);
     }
   },
 };
