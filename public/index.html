@@ -450,6 +450,41 @@
     .net-positive { color: var(--danger); font-weight: 700; }
     .net-negative { color: var(--success); font-weight: 700; }
     .net-zero { color: #64748b; font-weight: 600; }
+    .btn-whatsapp {
+      background: linear-gradient(135deg, #25D366, #128C7E);
+      color: white;
+      box-shadow: 0 4px 15px rgba(37,211,102,0.3);
+      padding: 6px 10px !important;
+      font-size: 15px;
+      border-radius: 8px;
+    }
+    .btn-whatsapp:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(37,211,102,0.4); }
+    #carryModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    #carryModal.open { display: flex; animation: fadeInBg 0.3s ease; }
+    @keyframes fadeInBg { from { opacity: 0; } to { opacity: 1; } }
+    #carryModalBox {
+      background: white;
+      border-radius: 20px;
+      padding: 32px;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: popIn 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    @keyframes popIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    #carryModalBox h3 { font-size: 20px; margin-bottom: 8px; color: var(--dark); }
+    #carryModalBox p { color: #64748b; font-size: 14px; margin-bottom: 24px; line-height: 1.6; }
+    #carryModalBox .modal-btns { display: flex; gap: 12px; justify-content: center; }
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
       20% { transform: translateX(-8px); }
@@ -516,7 +551,8 @@
     </div>
     <div class="card flex-row">
       <input id="cname" placeholder="Customer Name" style="flex: 1;">
-      <input id="crate" type="number" value="50" placeholder="Rate" style="width: 90px;">
+      <input id="cmobile" type="tel" placeholder="📱 Mobile (WhatsApp)" style="width: 190px;">
+      <input id="crate" type="number" value="50" placeholder="Rate ₹" style="width: 90px;">
       <button class="btn-green" onclick="addCustomer()">+ Add Customer</button>
       <input id="search" placeholder="🔍 Search Name..." oninput="filterTable()" style="margin-left: auto; flex: 1; max-width: 250px;">
     </div>
@@ -525,6 +561,7 @@
         <select id="month" onchange="loadData()"></select>
         <button class="btn-blue" onclick="save()">💾 Save All Records</button>
         <button class="btn-green" onclick="exportExcel()">📊 Export Excel</button>
+        <button style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;box-shadow:0 4px 15px rgba(245,158,11,0.3);" onclick="openCarryModal()">➡️ Carry to Next Month</button>
         <span id="loader"><span class="spinner"></span> Processing...</span>
       </div>
       <div class="table-wrapper">
@@ -533,6 +570,18 @@
           <tbody id="tbody"></tbody>
         </table>
       </div>
+    </div>
+  </div>
+</div>
+<!-- Carry Balance Modal -->
+<div id="carryModal">
+  <div id="carryModalBox">
+    <div style="font-size:48px;margin-bottom:12px;">➡️</div>
+    <h3>Carry Net Balance to Next Month?</h3>
+    <p id="carryModalDesc">This will save the current month, then set each customer's <strong>Old Balance</strong> in the next month to their current Net Balance.</p>
+    <div class="modal-btns">
+      <button class="btn-red" onclick="closeCarryModal()">Cancel</button>
+      <button class="btn-green" onclick="doCarry()">✅ Yes, Carry Forward</button>
     </div>
   </div>
 </div>
@@ -690,16 +739,18 @@
   async function addCustomer() {
     const name = document.getElementById("cname").value.trim();
     const rate = document.getElementById("crate").value;
+    const mobile = document.getElementById("cmobile").value.trim();
     if (!name) return showToast("Enter a name!", "error");
     try {
       const res = await fetch("/customer", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, rate })
+        body: JSON.stringify({ name, rate, mobile })
       });
       if (res.ok) {
         document.getElementById("cname").value = "";
+        document.getElementById("cmobile").value = "";
         showToast("Customer added successfully! ✨");
         loadCustomers();
       } else {
@@ -711,22 +762,15 @@
     }
   }
 
-  async function updateCustomer(id, name, rate) {
+  async function updateCustomer(id, name, mobile) {
     try {
-      const res = await fetch("/customer", {
+      await fetch("/customer", {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, name, rate })
+        body: JSON.stringify({ id, name, mobile })
       });
-      if (res.ok) {
-        showToast("Updated! ✓");
-      } else {
-        showToast("Update failed", "error");
-      }
-    } catch (err) {
-      showToast("Network error", "error");
-    }
+    } catch (err) { /* silent */ }
   }
 
   async function deleteCustomer(id) {
@@ -784,9 +828,9 @@
       const res = await fetch(`/load?month=${m}`, { credentials: "include" });
       const data = await res.json();
       const dCount = getDaysInMonth(m);
-      let h = `<tr><th>#</th><th class="sticky-col">Name</th><th>Rate</th>`;
+      let h = `<tr><th>#</th><th class="sticky-col">Name</th><th>Mobile</th><th>Rate</th>`;
       for (let i = 1; i <= dCount; i++) h += `<th>${i}</th>`;
-      h += `<th>Total L</th><th>Total ₹</th><th>Old</th><th>Rec</th><th>Net</th><th>Del</th></tr>`;
+      h += `<th>Total L</th><th>Total ₹</th><th>Old</th><th>Rec</th><th>Net</th><th>WA</th><th>Del</th></tr>`;
       document.getElementById("thead").innerHTML = h;
 
       document.getElementById("tbody").innerHTML = customers.map((c, idx) => {
@@ -795,25 +839,26 @@
         if (entry.days) {
           try {
             daysArr = typeof entry.days === 'string' ? JSON.parse(entry.days) : entry.days;
-          } catch (e) {
-            console.error("Failed to parse days data", e);
-          }
+          } catch (e) { console.error("Failed to parse days data", e); }
         }
         let inputs = "";
         for (let i = 0; i < dCount; i++) {
           inputs += `<td><input class="litre-input" type="number" step="0.1" value="${daysArr[i] || ""}" oninput="calc(this)"></td>`;
         }
         const defaultRate = c.rate || c.default_rate || 50;
-        return `<tr data-id="${c.id}" style="animation-delay: ${idx * 0.04}s">
+        const mobile = c.mobile || "";
+        return `<tr data-id="${c.id}" data-name="${c.name}" data-mobile="${mobile}" style="animation-delay: ${idx * 0.04}s">
           <td>${idx + 1}</td>
-          <td contenteditable="true" class="sticky-col" onblur="updateCustomer('${c.id}', this.innerText, ${defaultRate})">${c.name}</td>
+          <td contenteditable="true" class="sticky-col" onblur="updateCustomer('${c.id}', this.innerText, '${mobile}')">${c.name}</td>
+          <td><input type="tel" class="mobile-in" value="${mobile}" placeholder="📱" style="width:110px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" onblur="updateMobile('${c.id}', this.value)"></td>
           <td><input type="number" class="rate-in" value="${entry.rate || defaultRate}" style="width:55px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
           ${inputs}
           <td class="tl" style="font-weight: 600;">0</td>
           <td class="tr" style="font-weight: 600;">₹0</td>
-          <td><input class="old" type="number" value="${entry.old_balance || 0}" style="width:55px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
-          <td><input class="rec" type="number" value="${entry.received || 0}" style="width:55px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
+          <td><input class="old" type="number" value="${entry.old_balance || 0}" style="width:60px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
+          <td><input class="rec" type="number" value="${entry.received || 0}" style="width:60px; padding: 6px; border-radius: 8px; border: 2px solid rgba(99,102,241,0.1);" oninput="calc(this)"></td>
           <td class="net" style="font-weight: 700; font-size: 15px;">₹0</td>
+          <td><button class="btn-whatsapp" title="Send WhatsApp Bill" onclick="sendWhatsApp(this)">💬</button></td>
           <td><button class="btn-red" style="padding: 6px 10px;" onclick="deleteCustomer('${c.id}')">🗑️</button></td>
         </tr>`;
       }).join("");
@@ -887,6 +932,151 @@
       showToast("Export failed", "error");
     }
   }
+
+  // ─── UPDATE MOBILE ────────────────────────────────────────────────────────────
+  async function updateMobile(id, mobile) {
+    const tr = document.querySelector(`tr[data-id="${id}"]`);
+    const name = tr?.querySelector(".sticky-col")?.innerText || "";
+    try {
+      await fetch("/customer", {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name, mobile })
+      });
+      if (tr) tr.dataset.mobile = mobile;
+    } catch (err) { /* silent */ }
+  }
+
+  // ─── WHATSAPP BILL ────────────────────────────────────────────────────────────
+  function sendWhatsApp(btn) {
+    const tr = btn.closest("tr");
+    const name = tr.querySelector(".sticky-col")?.innerText?.trim() || "Customer";
+    const mobile = tr.querySelector(".mobile-in")?.value?.trim() || tr.dataset.mobile || "";
+    const totalL = tr.querySelector(".tl")?.innerText || "0";
+    const totalR = (tr.querySelector(".tr")?.innerText || "₹0").replace("₹","");
+    const oldBal = tr.querySelector(".old")?.value || "0";
+    const netRaw = (tr.querySelector(".net")?.innerText || "₹0").replace("₹","");
+    const monthName = monthNames[monthSelect.value - 1];
+
+    if (!mobile) {
+      showToast("No mobile number for this customer!", "error");
+      return;
+    }
+
+    const msg =
+`Hi ${name}! 👋
+
+Your milk bill for ${monthName} is ready 🥛📄
+
+• Old Balance: ₹${parseFloat(oldBal).toFixed(2)} 💰
+• Total Liters: ${totalL} 🥛
+• Total Amount: ₹${parseFloat(totalR).toFixed(2)} 💵
+• Net Balance: ₹${parseFloat(netRaw).toFixed(2)} 💳
+
+Please pay at your convenience via UPI or cash 💳
+
+Thank you! 😊
+— Adirai Milk`;
+
+    const phone = mobile.replace(/\D/g, "");
+    const waUrl = `https://wa.me/${phone.startsWith("91") ? phone : "91" + phone}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, "_blank");
+  }
+
+  // ─── CARRY NET BALANCE TO NEXT MONTH ─────────────────────────────────────────
+  function openCarryModal() {
+    const curMonth = monthNames[monthSelect.value - 1];
+    const nextMonthIdx = parseInt(monthSelect.value) % 12; // 0-based for monthNames
+    const nextMonthName = monthNames[nextMonthIdx];
+    document.getElementById("carryModalDesc").innerHTML =
+      `This will <strong>save ${curMonth}</strong> first, then set each customer's <strong>Old Balance in ${nextMonthName}</strong> to their current Net Balance.`;
+    document.getElementById("carryModal").classList.add("open");
+  }
+
+  function closeCarryModal() {
+    document.getElementById("carryModal").classList.remove("open");
+  }
+
+  async function doCarry() {
+    closeCarryModal();
+
+    // 1. Save current month first
+    document.getElementById("loader").style.display = "inline-flex";
+    const currentMonth = parseInt(monthSelect.value);
+    const nextMonth = (currentMonth % 12) + 1;
+
+    // Collect current rows
+    const rows = [...document.querySelectorAll("#tbody tr")].map(tr => ({
+      customer_id: tr.dataset.id,
+      rate: +tr.querySelector(".rate-in")?.value,
+      qty: +tr.querySelector(".tl")?.innerText,
+      old_balance: +tr.querySelector(".old")?.value,
+      received: +tr.querySelector(".rec")?.value,
+      days: [...tr.querySelectorAll(".litre-input")].map(i => i.value)
+    }));
+
+    // Collect net balances per customer to carry forward
+    const netBalances = {};
+    document.querySelectorAll("#tbody tr").forEach(tr => {
+      const id = tr.dataset.id;
+      const net = parseFloat((tr.querySelector(".net")?.innerText || "0").replace("₹","")) || 0;
+      netBalances[id] = net;
+    });
+
+    try {
+      // Save current month
+      await fetch("/save", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month: currentMonth, rows })
+      });
+
+      // Load next month's existing data
+      const nextRes = await fetch(`/load?month=${nextMonth}`, { credentials: "include" });
+      const nextData = await nextRes.json();
+
+      // Build next month rows: keep existing entries but set old_balance = current net
+      const nextRows = customers.map(c => {
+        const existing = nextData.find(x => x.customer_id == c.id) || {};
+        let daysArr = [];
+        if (existing.days) {
+          try { daysArr = typeof existing.days === 'string' ? JSON.parse(existing.days) : existing.days; } catch(e) {}
+        }
+        return {
+          customer_id: c.id,
+          rate: existing.rate || 50,
+          qty: existing.qty || 0,
+          old_balance: netBalances[c.id] || 0,  // ← carry the net balance
+          received: existing.received || 0,
+          days: daysArr
+        };
+      });
+
+      await fetch("/save", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month: nextMonth, rows: nextRows })
+      });
+
+      showToast(`✅ Carried to ${monthNames[nextMonth - 1]}!`, "success");
+
+      // Switch to next month
+      monthSelect.value = nextMonth;
+      loadData();
+    } catch (err) {
+      showToast("Carry failed. Please try again.", "error");
+    } finally {
+      document.getElementById("loader").style.display = "none";
+    }
+  }
+
+  // Close modal on backdrop click
+  document.getElementById("carryModal").addEventListener("click", function(e) {
+    if (e.target === this) closeCarryModal();
+  });
 
   // ─── INIT: check if already logged in ────────────────────────────────────────
   (async () => {
