@@ -894,6 +894,9 @@
   // ─── SAVE ────────────────────────────────────────────────────────────────────
   async function save() {
     document.getElementById("loader").style.display = "inline-flex";
+    const currentMonth = parseInt(monthSelect.value);
+    const nextMonth = (currentMonth % 12) + 1;
+
     const rows = [...document.querySelectorAll("#tbody tr")].map(tr => ({
       customer_id: tr.dataset.id,
       rate: +tr.querySelector(".rate-in")?.value,
@@ -902,19 +905,54 @@
       received: +tr.querySelector(".rec")?.value,
       days: [...tr.querySelectorAll(".litre-input")].map(i => i.value)
     }));
+
+    // Collect net balances to carry forward automatically
+    const netBalances = {};
+    document.querySelectorAll("#tbody tr").forEach(tr => {
+      netBalances[tr.dataset.id] = parseFloat((tr.querySelector(".net")?.innerText || "0").replace("₹","")) || 0;
+    });
+
     try {
+      // 1. Save current month
       const res = await fetch("/save", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ month: monthSelect.value, rows })
+        body: JSON.stringify({ month: currentMonth, rows })
       });
-      if (res.ok) {
-        showToast("✅ Data saved successfully!");
-      } else {
+      if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        showToast(data.error || "Save failed", "error");
+        return showToast(data.error || "Save failed", "error");
       }
+
+      // 2. Auto-carry net balance → next month old balance (merge with existing next month data)
+      const nextRes = await fetch(`/load?month=${nextMonth}`, { credentials: "include" });
+      const nextData = await nextRes.json();
+
+      const nextRows = customers.map(c => {
+        const existing = nextData.find(x => x.customer_id == c.id) || {};
+        let daysArr = [];
+        if (existing.days) {
+          try { daysArr = typeof existing.days === 'string' ? JSON.parse(existing.days) : existing.days; } catch(e) {}
+        }
+        return {
+          customer_id: c.id,
+          rate: existing.rate || 50,
+          qty: existing.qty || 0,
+          old_balance: netBalances[c.id] ?? 0,  // ← auto carry
+          received: existing.received || 0,
+          days: daysArr
+        };
+      });
+
+      await fetch("/save", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month: nextMonth, rows: nextRows })
+      });
+
+      showToast(`✅ Saved! Net balance carried to ${monthNames[nextMonth - 1]}`);
     } catch (err) {
       showToast("Network error", "error");
     } finally {
@@ -964,17 +1002,22 @@
       return;
     }
 
+    const currentAmt = parseFloat(totalR) || 0;
+    const oldBalAmt = parseFloat(oldBal) || 0;
+    const totalPayable = currentAmt + oldBalAmt;
+
     const msg =
 `Hi ${name}! 👋
 
 Your milk bill for ${monthName} is ready 🥛📄
 
-• Old Balance: ₹${parseFloat(oldBal).toFixed(2)} 💰
+• Old Balance: ₹${oldBalAmt.toFixed(2)} 💰
 • Total Liters: ${totalL} 🥛
-• Total Amount: ₹${parseFloat(totalR).toFixed(2)} 💵
-• Net Balance: ₹${parseFloat(netRaw).toFixed(2)} 💳
+• Current Month Amount: ₹${currentAmt.toFixed(2)} 💵
 
-Please pay at your convenience via UPI or cash 💳
+👉 Total Payable Amount (Old Balance + Current Amount): ₹${totalPayable.toFixed(2)} 💳
+
+Kindly pay at your convenience via UPI or cash 🙏
 
 Thank you! 😊
 — Adirai Milk`;
