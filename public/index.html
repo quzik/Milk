@@ -906,10 +906,11 @@
       days: [...tr.querySelectorAll(".litre-input")].map(i => i.value)
     }));
 
-    // Collect net balances to carry forward automatically
+    // Collect net balances to carry forward — use string keys to match dataset.id
     const netBalances = {};
     document.querySelectorAll("#tbody tr").forEach(tr => {
-      netBalances[tr.dataset.id] = parseFloat((tr.querySelector(".net")?.innerText || "0").replace("₹","")) || 0;
+      const net = parseFloat((tr.querySelector(".net")?.innerText || "0").replace("₹","")) || 0;
+      netBalances[String(tr.dataset.id)] = net;
     });
 
     try {
@@ -925,21 +926,24 @@
         return showToast(data.error || "Save failed", "error");
       }
 
-      // 2. Auto-carry net balance → next month old balance (merge with existing next month data)
+      // 2. Auto-carry net balance → next month old balance
       const nextRes = await fetch(`/load?month=${nextMonth}`, { credentials: "include" });
-      const nextData = await nextRes.json();
+      const nextData = await nextRes.json().catch(() => []);
 
       const nextRows = customers.map(c => {
-        const existing = nextData.find(x => x.customer_id == c.id) || {};
+        const existing = nextData.find(x => String(x.customer_id) === String(c.id)) || {};
         let daysArr = [];
         if (existing.days) {
           try { daysArr = typeof existing.days === 'string' ? JSON.parse(existing.days) : existing.days; } catch(e) {}
         }
+        // Get rate from current month row
+        const curTr = document.querySelector(`tr[data-id="${c.id}"]`);
+        const curRate = +curTr?.querySelector(".rate-in")?.value || existing.rate || 50;
         return {
           customer_id: c.id,
-          rate: existing.rate || 50,
+          rate: curRate,
           qty: existing.qty || 0,
-          old_balance: netBalances[c.id] ?? 0,  // ← auto carry
+          old_balance: netBalances[String(c.id)] ?? 0,   // ← net balance becomes next month's old balance
           received: existing.received || 0,
           days: daysArr
         };
@@ -952,7 +956,7 @@
         body: JSON.stringify({ month: nextMonth, rows: nextRows })
       });
 
-      showToast(`✅ Saved! Net balance carried to ${monthNames[nextMonth - 1]}`);
+      showToast(`✅ Saved! Net balance auto-carried to ${monthNames[nextMonth - 1]}`);
     } catch (err) {
       showToast("Network error", "error");
     } finally {
@@ -1013,9 +1017,9 @@ Your milk bill for ${monthName} is ready 🥛📄
 
 • Old Balance: ₹${oldBalAmt.toFixed(2)} 💰
 • Total Liters: ${totalL} 🥛
-• Current Month Amount: ₹${currentAmt.toFixed(2)} 💵
+• Current Amount: ₹${currentAmt.toFixed(2)} 💵
 
-👉 Total Payable Amount (Old Balance + Current Amount): ₹${totalPayable.toFixed(2)} 💳
+👉 Total Payable (₹${oldBalAmt.toFixed(2)} + ₹${currentAmt.toFixed(2)}): ₹${totalPayable.toFixed(2)} 💳
 
 Kindly pay at your convenience via UPI or cash 🙏
 
