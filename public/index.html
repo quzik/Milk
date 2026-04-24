@@ -909,7 +909,8 @@
     // Collect net balances to carry forward — use string keys to match dataset.id
     const netBalances = {};
     document.querySelectorAll("#tbody tr").forEach(tr => {
-      const net = parseFloat((tr.querySelector(".net")?.innerText || "0").replace("₹","")) || 0;
+      const netText = tr.querySelector(".net")?.innerText || "0";
+      const net = parseFloat(netText.replace(/[₹,]/g, "")) || 0;
       netBalances[String(tr.dataset.id)] = net;
     });
 
