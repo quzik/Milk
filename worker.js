@@ -134,13 +134,18 @@ export default {
       if (url.pathname === "/customer" && request.method === "POST") {
         let body;
         try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
-        const { name, rate } = body;
+        const { name, mobile } = body;
         if (!name?.trim()) return json({ error: "Name is required" }, 400);
 
+        // Add mobile column if it doesn't exist yet (safe migration)
+        try {
+          await env.DB.prepare("ALTER TABLE customers ADD COLUMN mobile TEXT DEFAULT ''").run();
+        } catch (e) { /* column already exists, ignore */ }
+
         const res = await env.DB.prepare(
-          "INSERT INTO customers (name, user_id) VALUES (?, ?)"
+          "INSERT INTO customers (name, user_id, mobile) VALUES (?, ?, ?)"
         )
-          .bind(name.trim(), uid)
+          .bind(name.trim(), uid, mobile || "")
           .run();
         const newId = res.meta?.last_row_id ?? res.meta?.last_insert_row_id ?? null;
         return json({ success: true, id: newId });
@@ -149,13 +154,18 @@ export default {
       if (url.pathname === "/customer" && request.method === "PUT") {
         let body;
         try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
-        const { id, name, rate } = body;
+        const { id, name, mobile } = body;
         if (!id) return json({ error: "Customer id is required" }, 400);
 
+        // Add mobile column if it doesn't exist yet (safe migration)
+        try {
+          await env.DB.prepare("ALTER TABLE customers ADD COLUMN mobile TEXT DEFAULT ''").run();
+        } catch (e) { /* column already exists, ignore */ }
+
         await env.DB.prepare(
-          "UPDATE customers SET name = ? WHERE id = ? AND user_id = ?"
+          "UPDATE customers SET name = ?, mobile = ? WHERE id = ? AND user_id = ?"
         )
-          .bind(name, id, uid)
+          .bind(name, mobile || "", id, uid)
           .run();
         return json({ success: true });
       }
