@@ -194,7 +194,7 @@ export default {
            JOIN customers c ON e.customer_id = c.id
            WHERE e.month = ? AND c.user_id = ?`
         )
-          .bind(month, uid)
+          .bind(String(month), uid)
           .all();
         return json(results);
       }
@@ -205,13 +205,16 @@ export default {
         const { month, rows } = body;
         if (!month) return json({ error: "month is required" }, 400);
 
+        // Always store month as string for consistent matching
+        const monthStr = String(month);
+
         // Delete existing entries for this month (only this user's customers)
         await env.DB.prepare(
           `DELETE FROM entries
            WHERE month = ?
            AND customer_id IN (SELECT id FROM customers WHERE user_id = ?)`
         )
-          .bind(month, uid)
+          .bind(monthStr, uid)
           .run();
 
         if (rows?.length > 0) {
@@ -222,12 +225,12 @@ export default {
             rows.map((r) =>
               stmt.bind(
                 r.customer_id,
-                month,
-                r.qty,
-                r.rate,
-                JSON.stringify(r.days),
-                r.old_balance,
-                r.received
+                monthStr,
+                Number(r.qty) || 0,
+                Number(r.rate) || 50,
+                JSON.stringify(r.days || []),
+                Number(r.old_balance) || 0,   // ← explicit cast — never undefined/null
+                Number(r.received) || 0
               )
             )
           );
